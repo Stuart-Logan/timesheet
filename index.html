@@ -178,8 +178,9 @@ table.wt th:last-child,table.wt td:last-child{border-right:none}
 .crd{color:var(--RD)}.cpd{color:var(--PD)}.cm{color:var(--text3)}
 
 /* ── PIN screen ─────────────────────────────── */
-#pin-screen{position:fixed;inset:0;background:var(--bg1);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:20px;}
+#pin-screen{position:fixed;inset:0;background:#0b0e14;background:var(--bg,#0b0e14);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;z-index:9999;}
 #pin-screen.hidden{display:none;}
 .pin-logo{font-family:var(--mono);font-size:42px;font-weight:700;color:var(--amber);
   letter-spacing:4px;line-height:1;}
@@ -202,7 +203,7 @@ table.wt th:last-child,table.wt td:last-child{border-right:none}
 .pin-change:hover{opacity:1;}
 </style>
 </head>
-<body>
+<body style="background:#0b0e14">
 <div id="pin-screen">
   <div class="pin-logo">E3</div>
   <div class="pin-sub">SDL Timesheets</div>
