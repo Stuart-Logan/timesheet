@@ -179,20 +179,27 @@ table.wt th:last-child,table.wt td:last-child{border-right:none}
 
 /* ── PIN screen ─────────────────────────────── */
 #pin-screen{position:fixed;inset:0;background:var(--bg1);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;z-index:9999;gap:16px;}
+  align-items:center;justify-content:center;gap:20px;}
 #pin-screen.hidden{display:none;}
-.pin-logo{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--amber);letter-spacing:2px;}
-.pin-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:-8px;}
-.pin-dots{display:flex;gap:10px;margin:8px 0;}
-.pin-dot{width:12px;height:12px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);transition:background .15s;}
-.pin-dot.filled{background:var(--amber);}
-.pin-pad{display:grid;grid-template-columns:repeat(3,56px);gap:8px;}
-.pin-key{height:48px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);
-  color:var(--text1);font-size:18px;font-family:var(--mono);cursor:pointer;transition:background .1s;}
-.pin-key:hover{background:var(--bg4);}
-.pin-key.wide{grid-column:span 3;}
-.pin-err{font-size:11px;color:#f87171;font-family:var(--mono);height:14px;text-align:center;}
-.pin-change{font-size:10px;color:var(--text3);font-family:var(--mono);cursor:pointer;text-decoration:underline;margin-top:4px;}
+.pin-logo{font-family:var(--mono);font-size:42px;font-weight:700;color:var(--amber);
+  letter-spacing:4px;line-height:1;}
+.pin-sub{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:2px;
+  text-transform:uppercase;margin-top:-12px;}
+.pin-dots{display:flex;gap:14px;margin:12px 0 4px;}
+.pin-dot{width:10px;height:10px;border-radius:50%;background:transparent;
+  border:1px solid var(--border2);transition:background .15s,border-color .15s;}
+.pin-dot.filled{background:var(--amber);border-color:var(--amber);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,64px);gap:6px;}
+.pin-key{height:52px;border-radius:4px;background:transparent;border:1px solid var(--border2);
+  color:var(--text2);font-size:20px;font-family:var(--mono);cursor:pointer;
+  transition:background .1s,color .1s;letter-spacing:1px;}
+.pin-key:hover{background:var(--bg3);color:var(--text1);}
+.pin-key:active{background:var(--bg4);}
+.pin-err{font-size:10px;color:#f87171;font-family:var(--mono);height:14px;
+  text-align:center;letter-spacing:1px;}
+.pin-change{font-size:10px;color:var(--text3);font-family:var(--mono);
+  cursor:pointer;letter-spacing:1px;margin-top:8px;opacity:.5;}
+.pin-change:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -222,6 +229,7 @@ table.wt th:last-child,table.wt td:last-child{border-right:none}
   <div class="pin-err" id="pin-err"></div>
   <div class="pin-change" onclick="pinChangeMode()" id="pin-change-btn">change pin</div>
 </div>
+<div id="app" style="display:none">
 <div id="hdr">
   <div class="logo"><span>E3</span> SDL Timesheets</div>
   <button class="btn btn-now" onclick="jumpToday()">Go to today</button>
@@ -951,7 +959,16 @@ function pinSetSub(msg){
 }
 
 function pinUnlock(){
-  document.getElementById('pin-screen').classList.add('hidden');
+  const ps=document.getElementById('pin-screen');
+  const app=document.getElementById('app');
+  ps.style.opacity='0';
+  ps.style.transition='opacity .25s';
+  setTimeout(()=>{
+    ps.classList.add('hidden');
+    ps.style.opacity='';
+    ps.style.transition='';
+    if(app){app.style.display='';}
+  },240);
   _pinBuf='';
 }
 
@@ -1033,5 +1050,6 @@ document.addEventListener('keydown',e=>{
 });
 
 </script>
+</div><!-- #app -->
 </body>
 </html>
