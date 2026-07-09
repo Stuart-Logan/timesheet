@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SDL Timesheets</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwYTUwMCIvPjx0ZXh0IHg9IjE2IiB5PSIyMyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwMDAiPkUzPC90ZXh0Pjwvc3ZnPg==">
+
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0e14;--bg2:#111520;--bg3:#181d2a;--bg4:#1e2436;
+  --border:#232940;--border2:#2e3650;
+  --text:#dde3f0;--text2:#8891aa;--text3:#555e78;
+  --amber:#f0a500;--adim:rgba(240,165,0,.15);--abd:rgba(240,165,0,.3);
+  --green:#22c55e;--gdim:rgba(34,197,94,.15);--gbd:rgba(34,197,94,.3);
+  --red:#ef4444;--rdim:rgba(239,68,68,.15);--rbd:rgba(239,68,68,.3);
+  --teal:#06b6d4;--tdim:rgba(6,182,212,.12);--tbd:rgba(6,182,212,.3);
+  --purple:#a78bfa;--pdim:rgba(167,139,250,.15);--pbd:rgba(167,139,250,.3);
+  --blue:#3b82f6;
+  --RD:#f59e0b;--RDdim:rgba(245,158,11,.18);--RDbd:rgba(245,158,11,.4);
+  --PD:#818cf8;--PDdim:rgba(129,140,248,.18);--PDbd:rgba(129,140,248,.4);
+  --font:'IBM Plex Sans',-apple-system,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --hh:44px; /* header height — used in JS scroll calc */
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}
+body.light{
+  --bg:#f0f2f7;--bg2:#fff;--bg3:#e8eaef;--bg4:#dde0e8;
+  --border:#c8ccd8;--border2:#b0b5c4;
+  --text:#1a1f2e;--text2:#4a5068;--text3:#8891aa;
+  --amber:#b45309;--adim:#fef3c7;--abd:#f59e0b;
+  --green:#15803d;--gdim:#dcfce7;--gbd:#22c55e;
+  --red:#b91c1c;--rdim:#fee2e2;--rbd:#ef4444;
+  --teal:#0e7490;--tdim:#cffafe;--tbd:#06b6d4;
+  --purple:#6d28d9;--pdim:#ede9fe;--pbd:#a78bfa;
+  --RD:#92400e;--RDdim:#fef3c7;--RDbd:#f59e0b;
+  --PD:#4338ca;--PDdim:#e0e7ff;--PDbd:#818cf8;
+}
+
+/* ── FIXED HEADER ── */
+#hdr{
+  position:sticky;top:0;left:0;right:0;z-index:999;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  height:var(--hh);display:flex;align-items:center;padding:0 16px;gap:8px;
+}
+#hdr .logo{font-weight:600;font-size:14px;margin-right:8px}
+#hdr .logo span{color:var(--amber)}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text2);
+  padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--font)}
+.btn:hover{background:var(--bg3);color:var(--text)}
+.btn-now{border-color:var(--tbd);color:var(--teal)}
+.btn-now:hover{background:var(--tdim)}
+.yr-btns{display:flex;gap:2px;margin-left:4px}
+.yr-btn{background:none;border:none;color:var(--text3);padding:2px 8px;font-size:12px;
+  cursor:pointer;font-family:var(--font);border-radius:3px}
+.yr-btn:hover{color:var(--text2);background:var(--bg3)}
+.yr-btn.on{color:var(--amber);font-weight:600;background:var(--adim)}
+.hdr-right{margin-left:auto;display:flex;gap:4px;align-items:center}
+
+/* ── MAIN — padded below fixed header ── */
+#main{padding-top:8px;max-width:1060px;margin:0 auto;padding-left:16px;padding-right:16px;padding-bottom:60px}
+
+/* ── HERO CARDS ── */
+.hero-grid{display:grid;grid-template-columns:170px 1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;position:relative}
+.hcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 7px 7px;background:var(--hc,var(--border))}
+.hcard-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600;margin-bottom:4px}
+.hcard-val{font-size:28px;font-weight:300;font-family:var(--mono);letter-spacing:-1px;line-height:1}
+.hcard-days{font-size:11px;font-weight:500;margin-top:2px}
+.hcard-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.wk-id-lbl{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.wk-id-dates{font-size:12px;color:var(--text2);line-height:1.5}
+.proj-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.pchip{font-size:10px;font-weight:600;font-family:var(--mono);padding:1px 6px;border-radius:3px}
+.pchip-rd{background:var(--RDdim);color:var(--RD);border:1px solid var(--RDbd)}
+.pchip-pd{background:var(--PDdim);color:var(--PD);border:1px solid var(--PDbd)}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.scard{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 12px}
+.scard-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:2px}
+.scard-val{font-size:17px;font-weight:500;font-family:var(--mono)}
+.scard-sub{font-size:10px;color:var(--text3)}
+
+/* ── CHART ── */
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px 8px;margin-bottom:12px}
+.chart-c{position:relative;height:180px}
+.chart-leg{display:flex;gap:10px;margin-top:7px;border-top:1px solid var(--border);padding-top:6px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text3)}
+.leg-dot{width:6px;height:6px;border-radius:1px;flex-shrink:0}
+
+/* ── WEEK SECTION ── */
+.wk-section-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);
+  padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px}
+
+/* ── WEEK CARD ── */
+.wk{background:var(--bg2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;overflow:hidden}
+.chv{font-size:9px;color:var(--text3);width:10px;flex-shrink:0}
+.wk-body.closed{display:none}
+.wk.now{border-color:var(--tbd);box-shadow:0 0 0 1px var(--tbd)}
+.wk-hdr{padding:7px 12px;display:flex;align-items:center;gap:8px;background:var(--bg3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.wk.now .wk-hdr{background:var(--tdim);border-left:3px solid var(--teal)}
+.wk-num{font-size:10px;font-weight:700;font-family:var(--mono);
+  padding:2px 6px;border-radius:3px;background:var(--bg4);color:var(--text2)}
+.wk.now .wk-num{background:var(--tdim);color:var(--teal);border:1px solid var(--tbd)}
+.wk-range{font-size:11px;color:var(--text3)}
+.wk-sum{margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--text3)}
+.wk-proj-mini{display:flex;gap:4px;font-size:9px;font-family:var(--mono)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table.wt{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+table.wt th,table.wt td{border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+table.wt tr:last-child td{border-bottom:none}
+table.wt th:last-child,table.wt td:last-child{border-right:none}
+.rlbl{width:54px;padding:4px 8px;font-size:9px;color:var(--text3);background:var(--bg3);
+  text-align:right;font-weight:500;white-space:nowrap}
+.dhd{padding:4px 2px;text-align:center;font-size:10px;font-weight:600;background:var(--bg3);color:var(--text2)}
+.dhd.wknd{color:var(--text3)}
+.dhd.today{color:var(--teal);background:var(--tdim)}
+.dtd{padding:2px 2px;text-align:center;background:var(--bg2)}
+.dtd.wknd{background:var(--bg3)}
+.dtd.today{background:var(--tdim)}
+.dtd.fl-hol{background:rgba(6,182,212,.08)}
+.dtd.fl-plan{background:rgba(167,139,250,.08)}
+
+/* time inputs */
+.ti{background:transparent;border:none;color:var(--text);font-family:var(--mono);
+  font-size:11px;width:100%;text-align:center;padding:3px 0;outline:none;caret-color:var(--amber)}
+.ti::placeholder{color:var(--border2)}
+.ti:focus{color:var(--amber);background:var(--adim);border-radius:2px}
+.dtd.today .ti{color:var(--text)}
+.dtd.today .ti:focus{color:var(--amber)}
+.ti.hol{color:var(--teal)}
+.ti.plan{color:var(--purple)}
+
+/* hours display */
+.hrs{font-family:var(--mono);font-size:11px;display:inline-block;min-width:32px}
+.hrs.pos{color:var(--green)}.hrs.neg{color:var(--red)}
+.hrs.hol{color:var(--teal)}.hrs.plan{color:var(--purple)}.hrs.mt{color:var(--text3)}
+
+/* flag buttons */
+.fl{background:transparent;border:1px solid var(--border2);color:var(--text3);
+  font-size:9px;font-weight:700;width:17px;height:15px;border-radius:2px;cursor:pointer;
+  line-height:1;font-family:var(--font);padding:0}
+.fl:hover{border-color:var(--text2);color:var(--text)}
+.fl.hol{background:var(--tdim);border-color:var(--tbd);color:var(--teal)}
+.fl.plan{background:var(--pdim);border-color:var(--pbd);color:var(--purple)}
+
+/* project pair */
+.proj-td{padding:1px 2px!important}
+.proj-pair{display:flex;flex-direction:column;gap:1px}
+.proj-row{display:flex;align-items:center;gap:2px;padding:1px 2px}
+.proj-row.rd{border-left:2px solid var(--RDbd)}
+.proj-row.pd{border-left:2px solid var(--PDbd)}
+.ptag{font-size:8px;font-weight:700;font-family:var(--mono);width:18px;flex-shrink:0}
+.proj-row.rd .ptag{color:var(--RD)}
+.proj-row.pd .ptag{color:var(--PD)}
+.pi{background:transparent;border:none;color:var(--text2);font-family:var(--mono);
+  font-size:10px;width:30px;text-align:center;padding:0;outline:none}
+.pi:focus{color:var(--text);background:var(--bg4);border-radius:2px}
+.pi.rd:focus{color:var(--RD)}
+.pi.pd:focus{color:var(--PD)}
+
+/* week footer */
+.wk-foot{background:var(--bg3);border-top:1px solid var(--border);
+  padding:5px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px}
+.ci{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);
+  padding:1px 5px;border-radius:3px;font-size:11px;font-family:var(--mono);width:46px;text-align:center}
+.ci:focus{outline:none;border-color:var(--abd);color:var(--text)}
+.tots{margin-left:auto;display:flex;gap:7px;font-family:var(--mono);font-size:10px;flex-wrap:wrap}
+.ti2{display:flex;gap:2px}.tl{color:var(--text3)}
+.ca{color:var(--amber)}.cg{color:var(--green)}.cr{color:var(--red)}
+.ct{color:var(--teal)}.cp{color:var(--purple)}.cb{color:var(--blue)}
+.crd{color:var(--RD)}.cpd{color:var(--PD)}.cm{color:var(--text3)}
+
+/* ── PIN screen ─────────────────────────────── */
+#pin-screen{position:fixed;inset:0;background:var(--bg1);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:9999;gap:16px;}
+#pin-screen.hidden{display:none;}
+.pin-logo{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--amber);letter-spacing:2px;}
+.pin-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:-8px;}
+.pin-dots{display:flex;gap:10px;margin:8px 0;}
+.pin-dot{width:12px;height:12px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);transition:background .15s;}
+.pin-dot.filled{background:var(--amber);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,56px);gap:8px;}
+.pin-key{height:48px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text1);font-size:18px;font-family:var(--mono);cursor:pointer;transition:background .1s;}
+.pin-key:hover{background:var(--bg4);}
+.pin-key.wide{grid-column:span 3;}
+.pin-err{font-size:11px;color:#f87171;font-family:var(--mono);height:14px;text-align:center;}
+.pin-change{font-size:10px;color:var(--text3);font-family:var(--mono);cursor:pointer;text-decoration:underline;margin-top:4px;}
+</style>
+</head>
+<body>
+<div id="pin-screen">
+  <div class="pin-logo">E3</div>
+  <div class="pin-sub">SDL Timesheets</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key" onclick="pinKey('')" style="font-size:13px">⌫</button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key" onclick="pinKey(null)" style="font-size:13px">✕</button>
+  </div>
+  <div class="pin-err" id="pin-err"></div>
+  <div class="pin-change" onclick="pinChangeMode()" id="pin-change-btn">change pin</div>
+</div>
+<div id="hdr">
+  <div class="logo"><span>E3</span> SDL Timesheets</div>
+  <button class="btn btn-now" onclick="jumpToday()">Go to today</button>
+  <div class="yr-btns" id="yr-btns"></div>
+  <div class="hdr-right">
+    <button class="btn" onclick="toggleTheme()" id="btn-theme">&#9790;</button>
+    <button class="btn" onclick="addYear()">+ Year</button>
+    <button class="btn" onclick="exportCSV()">Export CSV</button>
+    <button class="btn" id="btn-save" onclick="saveFile()" style="border-color:rgba(34,197,94,.4);color:#22c55e">&#8659; Save file</button>
+  </div>
+</div>
+
+<div id="main">
+  <div class="hero-grid" id="hero"></div>
+  <div class="stats-grid" id="stats"></div>
+  <div class="chart-box"><div class="chart-c"><canvas id="chart"></canvas></div>
+    <div class="chart-leg">
+      <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>Over contract</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Under contract</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--RD)"></div>R&amp;D</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--PD)"></div>PD</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--teal)"></div>Holiday</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div>Planning</div>
+      <div class="leg"><div class="leg-dot" style="border:1px dashed rgba(150,160,180,.6);background:transparent"></div>Contracted</div>
+    </div>
+  </div>
+  <div class="wk-section-hdr" id="sec-hdr"></div>
+  <div id="weeks"></div>
+</div>
+
+<script>
+const SK='e3ts_v13';
+const sv=s=>{try{localStorage.setItem(SK,JSON.stringify(s))}catch(e){}};
+const ld=()=>{try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r)}catch(e){}return null};
+
+function isoWeek(d){
+  // Simple, correct ISO week: Thursday of the week determines the year
+  const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=t.getUTCDay()||7;       // Mon=1 .. Sun=7
+  t.setUTCDate(t.getUTCDate()+4-day); // shift to Thursday of this week
+  const y=t.getUTCFullYear();
+  const jan1=new Date(Date.UTC(y,0,1));
+  const w=Math.ceil(((t-jan1)/864e5+1)/7);
+  return[y,w];
+}
+function mondayOf(y,w){
+  const s=new Date(y,0,1+(w-1)*7);const dow=s.getDay();
+  if(dow<=4)s.setDate(s.getDate()-dow+1);else s.setDate(s.getDate()+8-dow);
+  return s;
+}
+function weeksInYear(y){return isoWeek(new Date(y,11,28))[1];}
+function fd(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
+function mD(m){if(!m)return null;const d=Math.abs(m)/420;return(d%1?d.toFixed(1):d.toFixed(0))+'d';}
+
+const TODAY=new Date();
+const[TOD_Y,TOD_W]=isoWeek(TODAY);
+const TOD_ISO=TODAY.toISOString().slice(0,10);
+
+function normaliseTime(s){
+  // Accept 830, 0830, 1700, 930, 8, 17 as well as 08:30
+  if(!s)return '';
+  s=s.trim().replace(/[^0-9:]/g,'');
+  if(!s)return '';
+  if(s.includes(':')){
+    // already has colon — validate and return as-is
+    return s;
+  }
+  // digits only
+  if(s.length<=2){
+    // treat as hours only: 8 → 08:00, 17 → 17:00
+    return s.padStart(2,'0')+':00';
+  }
+  if(s.length===3){
+    // 830 → 08:30
+    return '0'+s[0]+':'+s.slice(1);
+  }
+  // 4 digits: 1700 → 17:00, 0830 → 08:30
+  return s.slice(0,2)+':'+s.slice(2,4);
+}
+function toM(s){
+  if(!s)return null;
+  s=normaliseTime(s);
+  const m=s.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if(!m)return null;
+  const h=+m[1],mn=+m[2];
+  if(h>30||mn>59)return null;
+  return h*60+mn;
+}
+function fm(m){
+  if(m==null)return'—';
+  const neg=m<0,a=Math.abs(m);
+  return(neg?'-':'')+Math.floor(a/60)+':'+(a%60<10?'0':'')+(a%60);
+}
+function calcDay(s,b,e){
+  const sm=toM(s),bm=toM(b)??0,em=toM(e);
+  if(sm==null||em==null)return null;
+  let d=em-sm-bm;if(d<-60)d+=1440;return d;
+}
+function parsePH(v){
+  if(!v)return null;
+  // Normalise shorthand (830→08:30, 4→04:00) before parsing
+  v=normaliseTime(String(v).trim());
+  const m=v.match(/^(\d+):(\d{2})$/);
+  if(m)return+m[1]*60+(+m[2]);
+  const n=parseFloat(v);
+  if(!isNaN(n)&&n>=0)return Math.round(n*60);
+  return null;
+}
+
+// Seed + state
+const SEED={"2023":{"1":{"contractMins":2100,"days":[{"date":"2023-01-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"2":{"contractMins":2100,"days":[{"date":"2023-01-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"3":{"contractMins":2100,"days":[{"date":"2023-01-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"4":{"contractMins":2100,"days":[{"date":"2023-01-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"5":{"contractMins":2100,"days":[{"date":"2023-01-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-01-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"6":{"contractMins":2100,"days":[{"date":"2023-02-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"7":{"contractMins":2100,"days":[{"date":"2023-02-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"8":{"contractMins":2100,"days":[{"date":"2023-02-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"9":{"contractMins":2100,"days":[{"date":"2023-02-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-02-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"10":{"contractMins":2100,"days":[{"date":"2023-03-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"11":{"contractMins":2100,"days":[{"date":"2023-03-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"12":{"contractMins":2100,"days":[{"date":"2023-03-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"13":{"contractMins":2100,"days":[{"date":"2023-03-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-03-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"14":{"contractMins":2100,"days":[{"date":"2023-04-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"15":{"contractMins":2100,"days":[{"date":"2023-04-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"16":{"contractMins":2100,"days":[{"date":"2023-04-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"17":{"contractMins":2100,"days":[{"date":"2023-04-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-04-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"18":{"contractMins":2100,"days":[{"date":"2023-05-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"19":{"contractMins":2100,"days":[{"date":"2023-05-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"20":{"contractMins":2100,"days":[{"date":"2023-05-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"21":{"contractMins":2100,"days":[{"date":"2023-05-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"22":{"contractMins":2100,"days":[{"date":"2023-05-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-05-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"23":{"contractMins":2100,"days":[{"date":"2023-06-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"24":{"contractMins":2100,"days":[{"date":"2023-06-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"25":{"contractMins":2100,"days":[{"date":"2023-06-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"26":{"contractMins":2100,"days":[{"date":"2023-06-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-06-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"27":{"contractMins":2100,"days":[{"date":"2023-07-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"28":{"contractMins":2100,"days":[{"date":"2023-07-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"29":{"contractMins":2100,"days":[{"date":"2023-07-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"30":{"contractMins":2100,"days":[{"date":"2023-07-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-07-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"31":{"contractMins":2100,"days":[{"date":"2023-07-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"32":{"contractMins":2100,"days":[{"date":"2023-08-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"33":{"contractMins":2100,"days":[{"date":"2023-08-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"34":{"contractMins":2100,"days":[{"date":"2023-08-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-08-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"35":{"contractMins":2100,"days":[{"date":"2023-08-28","start":"08:45","brk":"00:30","end":"18:15","flag":"","rd":"","pd":""},{"date":"2023-08-29","start":"08:30","brk":"00:30","end":"18:15","flag":"","rd":"","pd":""},{"date":"2023-08-30","start":"08:30","brk":"02:00","end":"17:45","flag":"","rd":"","pd":""},{"date":"2023-08-31","start":"08:15","brk":"00:30","end":"16:25","flag":"","rd":"","pd":""},{"date":"2023-09-01","start":"09:30","brk":"00:30","end":"13:30","flag":"","rd":"","pd":""},{"date":"2023-09-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-09-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"36":{"contractMins":2100,"days":[{"date":"2023-09-04","start":"08:30","brk":"00:30","end":"17:45","flag":"","rd":"","pd":""},{"date":"2023-09-05","start":"09:10","brk":"00:50","end":"17:20","flag":"","rd":"","pd":""},{"date":"2023-09-06","start":"08:45","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-09-07","start":"08:40","brk":"00:40","end":"18:00","flag":"","rd":"","pd":""},{"date":"2023-09-08","start":"09:30","brk":"","end":"12:30","flag":"","rd":"","pd":""},{"date":"2023-09-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-09-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"37":{"contractMins":2100,"days":[{"date":"2023-09-11","start":"08:45","brk":"00:30","end":"18:00","flag":"","rd":"","pd":""},{"date":"2023-09-12","start":"08:00","brk":"00:45","end":"18:30","flag":"","rd":"","pd":""},{"date":"2023-09-13","start":"09:00","brk":"00:40","end":"17:20","flag":"","rd":"","pd":""},{"date":"2023-09-14","start":"08:00","brk":"01:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-09-15","start":"09:00","brk":"","end":"13:00","flag":"","rd":"","pd":""},{"date":"2023-09-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-09-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"38":{"contractMins":2100,"days":[{"date":"2023-09-18","start":"10:30","brk":"00:25","end":"18:30","flag":"","rd":"","pd":""},{"date":"2023-09-19","start":"09:00","brk":"00:10","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-09-20","start":"08:30","brk":"00:45","end":"17:10","flag":"","rd":"","pd":""},{"date":"2023-09-21","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-09-22","start":"09:00","brk":"","end":"13:00","flag":"","rd":"","pd":""},{"date":"2023-09-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-09-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"39":{"contractMins":2100,"days":[{"date":"2023-09-25","start":"08:30","brk":"00:40","end":"18:40","flag":"","rd":"","pd":""},{"date":"2023-09-26","start":"08:30","brk":"00:30","end":"18:30","flag":"","rd":"","pd":""},{"date":"2023-09-27","start":"08:30","brk":"00:40","end":"17:45","flag":"","rd":"","pd":""},{"date":"2023-09-28","start":"08:30","brk":"00:30","end":"18:10","flag":"","rd":"","pd":""},{"date":"2023-09-29","start":"09:00","brk":"","end":"10:30","flag":"","rd":"","pd":""},{"date":"2023-09-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-10-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"40":{"contractMins":2100,"days":[{"date":"2023-10-02","start":"08:40","brk":"00:45","end":"17:50","flag":"","rd":"","pd":""},{"date":"2023-10-03","start":"08:40","brk":"00:50","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-10-04","start":"10:30","brk":"01:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-10-05","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-10-06","start":"09:00","brk":"03:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-10-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-10-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"41":{"contractMins":2100,"days":[{"date":"2023-10-09","start":"09:00","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-10-10","start":"08:00","brk":"","end":"17:00","flag":"travel","rd":"","pd":""},{"date":"2023-10-11","start":"08:00","brk":"","end":"17:00","flag":"travel","rd":"","pd":""},{"date":"2023-10-12","start":"08:00","brk":"","end":"17:00","flag":"travel","rd":"","pd":""},{"date":"2023-10-13","start":"09:00","brk":"","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-10-14","start":"12:00","brk":"","end":"15:00","flag":"","rd":"","pd":""},{"date":"2023-10-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"42":{"contractMins":2100,"days":[{"date":"2023-10-16","start":"07:40","brk":"00:40","end":"15:40","flag":"","rd":"","pd":""},{"date":"2023-10-17","start":"08:45","brk":"00:40","end":"17:50","flag":"","rd":"","pd":""},{"date":"2023-10-18","start":"08:30","brk":"00:30","end":"18:10","flag":"","rd":"","pd":""},{"date":"2023-10-19","start":"08:40","brk":"00:30","end":"17:50","flag":"","rd":"","pd":""},{"date":"2023-10-20","start":"10:00","brk":"00:00","end":"13:50","flag":"","rd":"","pd":""},{"date":"2023-10-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-10-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"43":{"contractMins":2100,"days":[{"date":"2023-10-23","start":"08:30","brk":"00:40","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-10-24","start":"09:20","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-10-25","start":"09:30","brk":"00:30","end":"17:10","flag":"","rd":"","pd":""},{"date":"2023-10-26","start":"09:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-10-27","start":"09:00","brk":"","end":"16:00","flag":"holiday","rd":"","pd":""},{"date":"2023-10-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-10-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"44":{"contractMins":2100,"days":[{"date":"2023-10-30","start":"08:30","brk":"00:00","end":"12:00","flag":"","rd":"","pd":""},{"date":"2023-10-31","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-01","start":"08:30","brk":"00:40","end":"17:40","flag":"","rd":"","pd":""},{"date":"2023-11-02","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-03","start":"08:30","brk":"00:30","end":"15:00","flag":"","rd":"","pd":""},{"date":"2023-11-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-11-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"45":{"contractMins":2100,"days":[{"date":"2023-11-06","start":"08:30","brk":"00:40","end":"18:25","flag":"","rd":"","pd":""},{"date":"2023-11-07","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-08","start":"08:40","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-09","start":"08:45","brk":"00:30","end":"18:30","flag":"","rd":"","pd":""},{"date":"2023-11-10","start":"08:30","brk":"00:00","end":"14:00","flag":"","rd":"","pd":""},{"date":"2023-11-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-11-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"46":{"contractMins":2100,"days":[{"date":"2023-11-13","start":"08:30","brk":"00:40","end":"18:15","flag":"","rd":"","pd":""},{"date":"2023-11-14","start":"09:05","brk":"00:30","end":"16:45","flag":"","rd":"","pd":""},{"date":"2023-11-15","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-16","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-17","start":"08:30","brk":"00:00","end":"11:00","flag":"","rd":"","pd":""},{"date":"2023-11-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-11-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"47":{"contractMins":2100,"days":[{"date":"2023-11-20","start":"08:00","brk":"00:30","end":"17:40","flag":"","rd":"","pd":""},{"date":"2023-11-21","start":"08:30","brk":"00:40","end":"15:30","flag":"","rd":"","pd":""},{"date":"2023-11-22","start":"08:30","brk":"00:30","end":"18:00","flag":"","rd":"","pd":""},{"date":"2023-11-23","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-24","start":"09:45","brk":"00:30","end":"16:00","flag":"","rd":"","pd":""},{"date":"2023-11-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-11-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"48":{"contractMins":2100,"days":[{"date":"2023-11-27","start":"08:30","brk":"00:40","end":"18:40","flag":"","rd":"","pd":""},{"date":"2023-11-28","start":"09:05","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2023-11-29","start":"08:40","brk":"00:30","end":"16:15","flag":"","rd":"","pd":""},{"date":"2023-11-30","start":"09:00","brk":"00:00","end":"14:00","flag":"","rd":"","pd":""},{"date":"2023-12-01","start":"09:00","brk":"01:00","end":"17:00","flag":"holiday","rd":"","pd":""},{"date":"2023-12-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"49":{"contractMins":2100,"days":[{"date":"2023-12-04","start":"08:30","brk":"00:40","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-12-05","start":"08:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-12-06","start":"08:30","brk":"00:30","end":"18:10","flag":"","rd":"","pd":""},{"date":"2023-12-07","start":"08:40","brk":"00:30","end":"16:45","flag":"","rd":"","pd":""},{"date":"2023-12-08","start":"08:30","brk":"00:00","end":"12:00","flag":"","rd":"","pd":""},{"date":"2023-12-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"50":{"contractMins":2100,"days":[{"date":"2023-12-11","start":"08:30","brk":"00:35","end":"17:25","flag":"","rd":"","pd":""},{"date":"2023-12-12","start":"11:30","brk":"01:00","end":"16:00","flag":"","rd":"","pd":""},{"date":"2023-12-13","start":"08:30","brk":"00:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-12-14","start":"08:30","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-12-15","start":"08:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2023-12-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"51":{"contractMins":2100,"days":[{"date":"2023-12-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"52":{"contractMins":2100,"days":[{"date":"2023-12-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2023-12-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]}},"2024":{"1":{"contractMins":840,"days":[{"date":"2024-01-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-04","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2024-01-05","start":"08:30","brk":"00:30","end":"16:30","flag":"","rd":"","pd":""},{"date":"2024-01-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"2":{"contractMins":840,"days":[{"date":"2024-01-08","start":"08:30","brk":"00:45","end":"16:20","flag":"","rd":"","pd":""},{"date":"2024-01-09","start":"08:45","brk":"00:30","end":"16:30","flag":"","rd":"","pd":""},{"date":"2024-01-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-11","start":"14:40","brk":"00:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-01-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"3":{"contractMins":840,"days":[{"date":"2024-01-15","start":"09:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-01-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-18","start":"09:00","brk":"00:45","end":"16:30","flag":"","rd":"","pd":""},{"date":"2024-01-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"4":{"contractMins":840,"days":[{"date":"2024-01-22","start":"08:30","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-01-23","start":"08:30","brk":"00:45","end":"17:10","flag":"","rd":"","pd":""},{"date":"2024-01-24","start":"09:00","brk":"00:00","end":"10:00","flag":"","rd":"","pd":""},{"date":"2024-01-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"5":{"contractMins":840,"days":[{"date":"2024-01-29","start":"08:30","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-01-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-01-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-01","start":"09:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-02-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"6":{"contractMins":840,"days":[{"date":"2024-02-05","start":"08:30","brk":"00:30","end":"17:10","flag":"","rd":"","pd":""},{"date":"2024-02-06","start":"08:30","brk":"00:00","end":"12:30","flag":"","rd":"","pd":""},{"date":"2024-02-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-08","start":"13:30","brk":"00:00","end":"17:10","flag":"","rd":"","pd":""},{"date":"2024-02-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"7":{"contractMins":840,"days":[{"date":"2024-02-12","start":"08:30","brk":"00:45","end":"17:00","flag":"planning","rd":"","pd":""},{"date":"2024-02-13","start":"08:00","brk":"00:00","end":"12:00","flag":"planning","rd":"","pd":""},{"date":"2024-02-14","start":"08:00","brk":"00:00","end":"17:00","flag":"planning","rd":"","pd":""},{"date":"2024-02-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"8":{"contractMins":840,"days":[{"date":"2024-02-19","start":"08:30","brk":"00:40","end":"17:00","flag":"","rd":"","pd":""},{"date":"2024-02-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-22","start":"10:30","brk":"00:30","end":"17:00","flag":"planning","rd":"","pd":""},{"date":"2024-02-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"9":{"contractMins":840,"days":[{"date":"2024-02-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-02-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"10":{"contractMins":840,"days":[{"date":"2024-03-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"11":{"contractMins":840,"days":[{"date":"2024-03-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"12":{"contractMins":840,"days":[{"date":"2024-03-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"13":{"contractMins":840,"days":[{"date":"2024-03-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-03-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"14":{"contractMins":840,"days":[{"date":"2024-04-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"15":{"contractMins":840,"days":[{"date":"2024-04-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"16":{"contractMins":840,"days":[{"date":"2024-04-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"17":{"contractMins":840,"days":[{"date":"2024-04-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"18":{"contractMins":840,"days":[{"date":"2024-04-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-04-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"19":{"contractMins":840,"days":[{"date":"2024-05-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"20":{"contractMins":840,"days":[{"date":"2024-05-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"21":{"contractMins":840,"days":[{"date":"2024-05-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"22":{"contractMins":840,"days":[{"date":"2024-05-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-05-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"23":{"contractMins":840,"days":[{"date":"2024-06-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"24":{"contractMins":600,"days":[{"date":"2024-06-10","start":"08:20","brk":"01:00","end":"17:10","flag":"","rd":"","pd":""},{"date":"2024-06-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-12","start":"08:45","brk":"00:00","end":"11:30","flag":"","rd":"","pd":""},{"date":"2024-06-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"25":{"contractMins":600,"days":[{"date":"2024-06-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"26":{"contractMins":600,"days":[{"date":"2024-06-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-06-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"27":{"contractMins":600,"days":[{"date":"2024-07-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"28":{"contractMins":600,"days":[{"date":"2024-07-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"29":{"contractMins":600,"days":[{"date":"2024-07-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"30":{"contractMins":600,"days":[{"date":"2024-07-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"31":{"contractMins":600,"days":[{"date":"2024-07-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-07-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"32":{"contractMins":600,"days":[{"date":"2024-08-05","start":"09:00","brk":"00:00","end":"16:00","flag":"BH","rd":"","pd":""},{"date":"2024-08-06","start":"08:30","brk":"00:00","end":"13:00","flag":"","rd":"","pd":""},{"date":"2024-08-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"33":{"contractMins":600,"days":[{"date":"2024-08-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"34":{"contractMins":600,"days":[{"date":"2024-08-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"35":{"contractMins":600,"days":[{"date":"2024-08-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-08-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"36":{"contractMins":600,"days":[{"date":"2024-09-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"37":{"contractMins":600,"days":[{"date":"2024-09-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"38":{"contractMins":600,"days":[{"date":"2024-09-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"39":{"contractMins":600,"days":[{"date":"2024-09-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-09-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"40":{"contractMins":600,"days":[{"date":"2024-09-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"41":{"contractMins":600,"days":[{"date":"2024-10-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"42":{"contractMins":600,"days":[{"date":"2024-10-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"43":{"contractMins":600,"days":[{"date":"2024-10-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"44":{"contractMins":600,"days":[{"date":"2024-10-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-10-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"45":{"contractMins":600,"days":[{"date":"2024-11-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"46":{"contractMins":600,"days":[{"date":"2024-11-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"47":{"contractMins":600,"days":[{"date":"2024-11-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"48":{"contractMins":600,"days":[{"date":"2024-11-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-11-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"49":{"contractMins":600,"days":[{"date":"2024-12-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"50":{"contractMins":600,"days":[{"date":"2024-12-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"51":{"contractMins":600,"days":[{"date":"2024-12-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"52":{"contractMins":840,"days":[{"date":"2024-12-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]}},"2025":{"1":{"contractMins":2100,"days":[{"date":"2024-12-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2024-12-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"2":{"contractMins":2100,"days":[{"date":"2025-01-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"3":{"contractMins":2100,"days":[{"date":"2025-01-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"4":{"contractMins":2100,"days":[{"date":"2025-01-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"5":{"contractMins":2100,"days":[{"date":"2025-01-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-01-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-02-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-02-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"6":{"contractMins":2100,"days":[{"date":"2025-02-03","start":"08:30","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-02-04","start":"08:30","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-02-05","start":"07:15","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-02-06","start":"08:40","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-02-07","start":"08:25","brk":"00:20","end":"15:30","flag":"","rd":"","pd":""},{"date":"2025-02-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-02-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"7":{"contractMins":2100,"days":[{"date":"2025-02-10","start":"07:15","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-02-11","start":"08:20","brk":"00:30","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-02-12","start":"08:20","brk":"00:20","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-02-13","start":"08:15","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-02-14","start":"08:30","brk":"00:20","end":"14:30","flag":"","rd":"","pd":""},{"date":"2025-02-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-02-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"8":{"contractMins":2100,"days":[{"date":"2025-02-17","start":"07:45","brk":"00:20","end":"17:20","flag":"","rd":"","pd":""},{"date":"2025-02-18","start":"08:30","brk":"00:20","end":"18:15","flag":"","rd":"","pd":""},{"date":"2025-02-19","start":"08:45","brk":"00:20","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-02-20","start":"08:45","brk":"00:15","end":"18:55","flag":"","rd":"","pd":""},{"date":"2025-02-21","start":"09:50","brk":"00:00","end":"12:00","flag":"","rd":"","pd":""},{"date":"2025-02-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-02-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"9":{"contractMins":2100,"days":[{"date":"2025-02-24","start":"08:45","brk":"00:20","end":"17:35","flag":"","rd":"","pd":""},{"date":"2025-02-25","start":"08:15","brk":"00:45","end":"17:30","flag":"travel","rd":"","pd":""},{"date":"2025-02-26","start":"07:30","brk":"00:45","end":"17:30","flag":"travel","rd":"","pd":""},{"date":"2025-02-27","start":"08:50","brk":"00:45","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-02-28","start":"09:00","brk":"00:30","end":"15:00","flag":"","rd":"","pd":""},{"date":"2025-03-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-03-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"10":{"contractMins":2100,"days":[{"date":"2025-03-03","start":"08:00","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-03-04","start":"08:00","brk":"00:40","end":"16:15","flag":"","rd":"","pd":""},{"date":"2025-03-05","start":"09:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-03-06","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-03-07","start":"08:30","brk":"00:30","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-03-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-03-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"11":{"contractMins":2100,"days":[{"date":"2025-03-10","start":"08:30","brk":"00:20","end":"18:40","flag":"","rd":"","pd":""},{"date":"2025-03-11","start":"08:35","brk":"00:20","end":"18:45","flag":"","rd":"","pd":""},{"date":"2025-03-12","start":"08:30","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-03-13","start":"07:00","brk":"00:45","end":"18:00","flag":"","rd":"","pd":""},{"date":"2025-03-14","start":"08:00","brk":"00:15","end":"15:45","flag":"","rd":"","pd":""},{"date":"2025-03-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-03-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"12":{"contractMins":2100,"days":[{"date":"2025-03-17","start":"07:00","brk":"01:00","end":"20:00","flag":"","rd":"","pd":""},{"date":"2025-03-18","start":"08:30","brk":"00:15","end":"19:00","flag":"","rd":"","pd":""},{"date":"2025-03-19","start":"08:40","brk":"00:20","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-03-20","start":"09:00","brk":"01:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-03-21","start":"08:30","brk":"00:20","end":"16:40","flag":"","rd":"","pd":""},{"date":"2025-03-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-03-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"13":{"contractMins":2100,"days":[{"date":"2025-03-24","start":"08:30","brk":"00:15","end":"18:00","flag":"","rd":"","pd":""},{"date":"2025-03-25","start":"08:50","brk":"00:45","end":"19:50","flag":"","rd":"","pd":""},{"date":"2025-03-26","start":"08:45","brk":"00:50","end":"18:00","flag":"","rd":"","pd":""},{"date":"2025-03-27","start":"08:10","brk":"00:40","end":"17:20","flag":"","rd":"","pd":""},{"date":"2025-03-28","start":"06:50","brk":"00:00","end":"14:30","flag":"","rd":"","pd":""},{"date":"2025-03-29","start":"08:30","brk":"00:30","end":"16:00","flag":"","rd":"","pd":""},{"date":"2025-03-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"14":{"contractMins":2100,"days":[{"date":"2025-03-31","start":"08:15","brk":"00:30","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-04-01","start":"08:30","brk":"00:30","end":"16:55","flag":"","rd":"","pd":""},{"date":"2025-04-02","start":"08:45","brk":"00:30","end":"17:50","flag":"","rd":"","pd":""},{"date":"2025-04-03","start":"06:30","brk":"01:00","end":"19:00","flag":"","rd":"","pd":""},{"date":"2025-04-04","start":"08:30","brk":"00:30","end":"16:20","flag":"","rd":"","pd":""},{"date":"2025-04-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-04-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"15":{"contractMins":2100,"days":[{"date":"2025-04-07","start":"08:10","brk":"00:30","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-04-08","start":"08:30","brk":"00:40","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-04-09","start":"08:30","brk":"00:30","end":"18:22","flag":"","rd":"","pd":""},{"date":"2025-04-10","start":"08:20","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-04-11","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-04-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-04-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"16":{"contractMins":2100,"days":[{"date":"2025-04-14","start":"08:45","brk":"00:20","end":"18:15","flag":"","rd":"","pd":""},{"date":"2025-04-15","start":"07:30","brk":"00:20","end":"15:40","flag":"","rd":"","pd":""},{"date":"2025-04-16","start":"08:10","brk":"00:20","end":"19:30","flag":"","rd":"","pd":""},{"date":"2025-04-17","start":"08:20","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-04-18","start":"08:15","brk":"00:30","end":"15:45","flag":"","rd":"","pd":""},{"date":"2025-04-19","start":"08:30","brk":"00:20","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-04-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"17":{"contractMins":2100,"days":[{"date":"2025-04-21","start":"07:50","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-04-22","start":"08:00","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-04-23","start":"08:00","brk":"00:20","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-04-24","start":"08:10","brk":"00:20","end":"16:50","flag":"","rd":"","pd":""},{"date":"2025-04-25","start":"08:30","brk":"00:20","end":"15:30","flag":"","rd":"","pd":""},{"date":"2025-04-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-04-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"18":{"contractMins":2100,"days":[{"date":"2025-04-28","start":"08:30","brk":"00:40","end":"16:20","flag":"","rd":"","pd":""},{"date":"2025-04-29","start":"08:50","brk":"00:15","end":"19:30","flag":"","rd":"","pd":""},{"date":"2025-04-30","start":"08:20","brk":"00:40","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-01","start":"08:20","brk":"00:30","end":"16:40","flag":"","rd":"","pd":""},{"date":"2025-05-02","start":"09:00","brk":"00:00","end":"13:00","flag":"","rd":"","pd":""},{"date":"2025-05-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-05-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"19":{"contractMins":2100,"days":[{"date":"2025-05-05","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-05-06","start":"08:35","brk":"00:20","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-07","start":"08:35","brk":"00:40","end":"16:40","flag":"","rd":"","pd":""},{"date":"2025-05-08","start":"08:30","brk":"01:00","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-09","start":"08:30","brk":"00:35","end":"15:00","flag":"","rd":"","pd":""},{"date":"2025-05-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-05-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"20":{"contractMins":2100,"days":[{"date":"2025-05-12","start":"08:45","brk":"00:15","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-05-13","start":"08:45","brk":"00:20","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-05-14","start":"06:00","brk":"00:30","end":"20:30","flag":"","rd":"","pd":""},{"date":"2025-05-15","start":"08:30","brk":"00:30","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-16","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-05-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-05-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"21":{"contractMins":2100,"days":[{"date":"2025-05-19","start":"08:00","brk":"00:20","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-05-20","start":"08:00","brk":"00:20","end":"19:30","flag":"","rd":"","pd":""},{"date":"2025-05-21","start":"08:00","brk":"00:20","end":"18:30","flag":"","rd":"","pd":""},{"date":"2025-05-22","start":"08:00","brk":"00:20","end":"16:00","flag":"","rd":"","pd":""},{"date":"2025-05-23","start":"08:00","brk":"00:00","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-05-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"22":{"contractMins":2100,"days":[{"date":"2025-05-26","start":"08:00","brk":"00:00","end":"15:00","flag":"","rd":"","pd":""},{"date":"2025-05-27","start":"08:00","brk":"00:20","end":"16:40","flag":"","rd":"","pd":""},{"date":"2025-05-28","start":"09:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-05-29","start":"08:05","brk":"01:00","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-05-30","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-05-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-06-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"23":{"contractMins":2100,"days":[{"date":"2025-06-02","start":"08:00","brk":"00:30","end":"16:15","flag":"","rd":"","pd":""},{"date":"2025-06-03","start":"08:00","brk":"00:25","end":"16:15","flag":"","rd":"","pd":""},{"date":"2025-06-04","start":"08:00","brk":"00:15","end":"14:45","flag":"","rd":"","pd":""},{"date":"2025-06-05","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-06","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-06-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"24":{"contractMins":2100,"days":[{"date":"2025-06-09","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-10","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-11","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-12","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-13","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-06-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"25":{"contractMins":2100,"days":[{"date":"2025-06-16","start":"08:30","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-06-17","start":"08:30","brk":"00:30","end":"16:55","flag":"","rd":"","pd":""},{"date":"2025-06-18","start":"09:15","brk":"00:30","end":"14:30","flag":"","rd":"","pd":""},{"date":"2025-06-19","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-20","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-06-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"26":{"contractMins":2100,"days":[{"date":"2025-06-23","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-06-24","start":"08:00","brk":"00:00","end":"15:00","flag":"illness","rd":"","pd":""},{"date":"2025-06-25","start":"08:00","brk":"00:00","end":"15:00","flag":"illness","rd":"","pd":""},{"date":"2025-06-26","start":"08:00","brk":"00:00","end":"15:00","flag":"illness","rd":"","pd":""},{"date":"2025-06-27","start":"08:00","brk":"00:00","end":"15:00","flag":"illness","rd":"","pd":""},{"date":"2025-06-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-06-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"27":{"contractMins":2100,"days":[{"date":"2025-06-30","start":"08:10","brk":"00:25","end":"18:00","flag":"M","rd":"","pd":""},{"date":"2025-07-01","start":"09:30","brk":"00:30","end":"16:00","flag":"M","rd":"","pd":""},{"date":"2025-07-02","start":"09:00","brk":"00:30","end":"16:00","flag":"R","rd":"","pd":""},{"date":"2025-07-03","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-04","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-07-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"28":{"contractMins":2100,"days":[{"date":"2025-07-07","start":"08:45","brk":"00:30","end":"16:20","flag":"M","rd":"","pd":""},{"date":"2025-07-08","start":"08:45","brk":"00:30","end":"16:30","flag":"W","rd":"","pd":""},{"date":"2025-07-09","start":"09:00","brk":"01:00","end":"16:00","flag":"R","rd":"","pd":""},{"date":"2025-07-10","start":"08:30","brk":"00:15","end":"17:45","flag":"M","rd":"","pd":""},{"date":"2025-07-11","start":"09:00","brk":"01:00","end":"17:00","flag":"R, event","rd":"","pd":""},{"date":"2025-07-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-07-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"29":{"contractMins":2100,"days":[{"date":"2025-07-14","start":"08:45","brk":"00:45","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-07-15","start":"08:20","brk":"00:30","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-07-16","start":"08:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-07-17","start":"08:30","brk":"00:30","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-07-18","start":"09:00","brk":"00:40","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-07-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-07-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"30":{"contractMins":2100,"days":[{"date":"2025-07-21","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-22","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-23","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-24","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-25","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-07-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"31":{"contractMins":2100,"days":[{"date":"2025-07-28","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-29","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-07-30","start":"08:30","brk":"00:40","end":"17:30","flag":"M","rd":"","pd":""},{"date":"2025-07-31","start":"08:30","brk":"00:30","end":"17:00","flag":"M","rd":"","pd":""},{"date":"2025-08-01","start":"09:00","brk":"00:40","end":"17:15","flag":"R","rd":"","pd":""},{"date":"2025-08-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-08-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"32":{"contractMins":2100,"days":[{"date":"2025-08-04","start":"08:45","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-08-05","start":"07:30","brk":"00:45","end":"19:00","flag":"","rd":"","pd":""},{"date":"2025-08-06","start":"08:30","brk":"00:30","end":"17:45","flag":"","rd":"","pd":""},{"date":"2025-08-07","start":"08:45","brk":"00:50","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-08-08","start":"09:00","brk":"00:00","end":"12:45","flag":"","rd":"","pd":""},{"date":"2025-08-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-08-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"33":{"contractMins":2100,"days":[{"date":"2025-08-11","start":"09:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-08-12","start":"08:15","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-08-13","start":"07:30","brk":"00:40","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-08-14","start":"07:30","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-08-15","start":"09:00","brk":"00:00","end":"12:30","flag":"","rd":"","pd":""},{"date":"2025-08-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-08-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"34":{"contractMins":2100,"days":[{"date":"2025-08-18","start":"09:00","brk":"00:25","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-08-19","start":"08:30","brk":"00:45","end":"18:05","flag":"","rd":"","pd":""},{"date":"2025-08-20","start":"08:40","brk":"00:30","end":"17:05","flag":"","rd":"","pd":""},{"date":"2025-08-21","start":"09:00","brk":"00:30","end":"17:20","flag":"","rd":"","pd":""},{"date":"2025-08-22","start":"09:00","brk":"00:00","end":"13:00","flag":"","rd":"","pd":""},{"date":"2025-08-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-08-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"35":{"contractMins":2100,"days":[{"date":"2025-08-25","start":"08:20","brk":"00:15","end":"16:45","flag":"","rd":"","pd":""},{"date":"2025-08-26","start":"07:30","brk":"00:30","end":"18:00","flag":"","rd":"","pd":""},{"date":"2025-08-27","start":"08:40","brk":"00:45","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-08-28","start":"08:45","brk":"00:45","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-08-29","start":"09:10","brk":"00:30","end":"14:30","flag":"","rd":"","pd":""},{"date":"2025-08-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-08-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"36":{"contractMins":2100,"days":[{"date":"2025-09-01","start":"08:30","brk":"00:15","end":"17:05","flag":"","rd":"","pd":""},{"date":"2025-09-02","start":"08:30","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-03","start":"09:20","brk":"00:45","end":"17:15","flag":"","rd":"","pd":""},{"date":"2025-09-04","start":"07:30","brk":"00:30","end":"17:30","flag":"","rd":"","pd":""},{"date":"2025-09-05","start":"08:05","brk":"00:00","end":"15:30","flag":"","rd":"","pd":""},{"date":"2025-09-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-09-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"37":{"contractMins":2100,"days":[{"date":"2025-09-08","start":"08:10","brk":"00:25","end":"15:00","flag":"","rd":"","pd":""},{"date":"2025-09-09","start":"06:30","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-10","start":"08:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-11","start":"08:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-12","start":"08:00","brk":"00:30","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-09-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"38":{"contractMins":2100,"days":[{"date":"2025-09-15","start":"06:30","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-16","start":"08:00","brk":"00:45","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-09-17","start":"08:00","brk":"00:45","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-09-18","start":"08:00","brk":"00:45","end":"16:30","flag":"","rd":"","pd":""},{"date":"2025-09-19","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-09-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-09-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"39":{"contractMins":2100,"days":[{"date":"2025-09-22","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-09-23","start":"06:30","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2025-09-24","start":"08:00","brk":"01:00","end":"18:00","flag":"","rd":"","pd":""},{"date":"2025-09-25","start":"08:00","brk":"00:45","end":"16:00","flag":"","rd":"","pd":""},{"date":"2025-09-26","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-09-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-09-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"40":{"contractMins":2100,"days":[{"date":"2025-09-29","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-09-30","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-01","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"41":{"contractMins":420,"days":[{"date":"2025-10-06","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"42":{"contractMins":420,"days":[{"date":"2025-10-13","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"43":{"contractMins":420,"days":[{"date":"2025-10-20","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"44":{"contractMins":420,"days":[{"date":"2025-10-27","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-10-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-10-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"45":{"contractMins":420,"days":[{"date":"2025-11-03","start":"14:00","brk":"01:45","end":"22:45","flag":"planning","rd":"","pd":""},{"date":"2025-11-04","start":"14:10","brk":"01:45","end":"22:45","flag":"planning","rd":"","pd":""},{"date":"2025-11-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-06","start":"14:00","brk":"01:00","end":"22:00","flag":"planning","rd":"","pd":""},{"date":"2025-11-07","start":"14:00","brk":"01:00","end":"22:00","flag":"planning","rd":"","pd":""},{"date":"2025-11-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"46":{"contractMins":420,"days":[{"date":"2025-11-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"47":{"contractMins":420,"days":[{"date":"2025-11-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"48":{"contractMins":420,"days":[{"date":"2025-11-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-11-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"49":{"contractMins":420,"days":[{"date":"2025-12-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"50":{"contractMins":420,"days":[{"date":"2025-12-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"51":{"contractMins":420,"days":[{"date":"2025-12-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"52":{"contractMins":420,"days":[{"date":"2025-12-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]}},"2026":{"1":{"contractMins":2100,"days":[{"date":"2025-12-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2025-12-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"2":{"contractMins":420,"days":[{"date":"2026-01-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-08","start":"16:35","brk":"00:00","end":"17:50","flag":"","rd":"","pd":""},{"date":"2026-01-09","start":"13:50","brk":"00:00","end":"19:45","flag":"","rd":"","pd":""},{"date":"2026-01-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-11","start":"14:00","brk":"00:00","end":"17:50","flag":"","rd":"","pd":""}]},"3":{"contractMins":420,"days":[{"date":"2026-01-12","start":"16:45","brk":"00:00","end":"20:30","flag":"","rd":"","pd":""},{"date":"2026-01-13","start":"15:00","brk":"00:00","end":"19:10","flag":"","rd":"","pd":""},{"date":"2026-01-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-17","start":"15:50","brk":"01:30","end":"23:30","flag":"","rd":"","pd":""},{"date":"2026-01-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"4":{"contractMins":420,"days":[{"date":"2026-01-19","start":"09:20","brk":"00:00","end":"14:40","flag":"","rd":"","pd":""},{"date":"2026-01-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"5":{"contractMins":420,"days":[{"date":"2026-01-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"6":{"contractMins":420,"days":[{"date":"2026-02-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-05","start":"14:20","brk":"03:00","end":"00:30","flag":"","rd":"","pd":""},{"date":"2026-02-06","start":"14:30","brk":"01:30","end":"22:50","flag":"","rd":"","pd":""},{"date":"2026-02-07","start":"16:00","brk":"00:00","end":"19:30","flag":"","rd":"","pd":""},{"date":"2026-02-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"7":{"contractMins":420,"days":[{"date":"2026-02-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"8":{"contractMins":420,"days":[{"date":"2026-02-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"9":{"contractMins":420,"days":[{"date":"2026-02-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-02-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"10":{"contractMins":420,"days":[{"date":"2026-03-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-03","start":"22:00","brk":"00:00","end":"22:40","flag":"","rd":"","pd":""},{"date":"2026-03-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-06","start":"14:45","brk":"01:15","end":"23:00","flag":"","rd":"","pd":""},{"date":"2026-03-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"11":{"contractMins":420,"days":[{"date":"2026-03-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"12":{"contractMins":420,"days":[{"date":"2026-03-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"13":{"contractMins":420,"days":[{"date":"2026-03-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"14":{"contractMins":1260,"days":[{"date":"2026-03-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-03-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-04-01","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-04-02","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-04-03","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-04-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-04-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"15":{"contractMins":2100,"days":[{"date":"2026-04-06","start":"08:00","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2026-04-07","start":"08:15","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2026-04-08","start":"09:00","brk":"00:20","end":"17:40","flag":"","rd":"","pd":""},{"date":"2026-04-09","start":"09:00","brk":"00:40","end":"17:15","flag":"","rd":"","pd":""},{"date":"2026-04-10","start":"08:00","brk":"00:00","end":"13:45","flag":"","rd":"","pd":""},{"date":"2026-04-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-04-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"16":{"contractMins":2100,"days":[{"date":"2026-04-13","start":"08:45","brk":"00:35","end":"18:00","flag":"wfh","rd":"","pd":""},{"date":"2026-04-14","start":"06:30","brk":"00:30","end":"17:00","flag":"kb","rd":"","pd":""},{"date":"2026-04-15","start":"08:00","brk":"00:35","end":"18:00","flag":"wfh","rd":"","pd":""},{"date":"2026-04-16","start":"09:00","brk":"00:45","end":"16:45","flag":"kb","rd":"","pd":""},{"date":"2026-04-17","start":"09:15","brk":"00:00","end":"13:15","flag":"wfh","rd":"","pd":""},{"date":"2026-04-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-04-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"17":{"contractMins":2100,"days":[{"date":"2026-04-20","start":"08:30","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2026-04-21","start":"08:30","brk":"00:35","end":"16:45","flag":"","rd":"","pd":""},{"date":"2026-04-22","start":"09:00","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2026-04-23","start":"08:30","brk":"00:45","end":"17:30","flag":"","rd":"","pd":""},{"date":"2026-04-24","start":"09:00","brk":"00:00","end":"13:00","flag":"","rd":"","pd":""},{"date":"2026-04-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-04-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"18":{"contractMins":2100,"days":[{"date":"2026-04-27","start":"08:00","brk":"00:45","end":"17:00","flag":"","rd":"00:00","pd":"08:15"},{"date":"2026-04-28","start":"08:30","brk":"00:45","end":"17:00","flag":"","rd":"00:00","pd":"07:45"},{"date":"2026-04-29","start":"09:00","brk":"00:45","end":"17:00","flag":"","rd":"00:00","pd":"07:15"},{"date":"2026-04-30","start":"08:30","brk":"00:45","end":"17:10","flag":"","rd":"00:00","pd":"07:55"},{"date":"2026-05-01","start":"09:00","brk":"00:00","end":"13:48","flag":"","rd":"00:00","pd":"04:48"},{"date":"2026-05-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-05-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"19":{"contractMins":2100,"days":[{"date":"2026-05-04","start":"08:30","brk":"00:45","end":"19:10","flag":"","rd":"01:00","pd":"08:55"},{"date":"2026-05-05","start":"08:30","brk":"00:45","end":"16:45","flag":"","rd":"05:30","pd":"02:00"},{"date":"2026-05-06","start":"08:30","brk":"00:40","end":"16:30","flag":"","rd":"00:00","pd":"07:20"},{"date":"2026-05-07","start":"08:30","brk":"01:00","end":"18:00","flag":"","rd":"04:00","pd":"04:30"},{"date":"2026-05-08","start":"09:15","brk":"00:00","end":"13:15","flag":"","rd":"00:00","pd":"03:00"},{"date":"2026-05-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-05-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"20":{"contractMins":2100,"days":[{"date":"2026-05-11","start":"08:45","brk":"00:30","end":"18:45","flag":"","rd":"","pd":""},{"date":"2026-05-12","start":"08:30","brk":"01:00","end":"16:30","flag":"","rd":"03:00","pd":"04:00"},{"date":"2026-05-13","start":"08:30","brk":"00:45","end":"16:45","flag":"","rd":"01:00","pd":"05:45"},{"date":"2026-05-14","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-15","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-05-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"21":{"contractMins":2100,"days":[{"date":"2026-05-18","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-19","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-20","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-21","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-22","start":"08:00","brk":"","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2026-05-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-05-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"22":{"contractMins":2100,"days":[{"date":"2026-05-25","start":"08:30","brk":"00:45","end":"17:00","flag":"","rd":"02:00","pd":"05:45"},{"date":"2026-05-26","start":"08:30","brk":"00:45","end":"17:30","flag":"","rd":"00:00","pd":"07:45"},{"date":"2026-05-27","start":"09:00","brk":"00:30","end":"17:30","flag":"","rd":"00:00","pd":"08:00"},{"date":"2026-05-28","start":"08:30","brk":"01:00","end":"17:40","flag":"","rd":"00:00","pd":"08:10"},{"date":"2026-05-29","start":"09:20","brk":"00:00","end":"13:00","flag":"","rd":"00:00","pd":"03:10"},{"date":"2026-05-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-05-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"23":{"contractMins":2100,"days":[{"date":"2026-06-01","start":"08:30","brk":"00:40","end":"19:00","flag":"","rd":"00:00","pd":"09:50"},{"date":"2026-06-02","start":"08:40","brk":"00:35","end":"17:00","flag":"","rd":"15:00","pd":"06:45"},{"date":"2026-06-03","start":"09:00","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-06-04","start":"09:15","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-06-05","start":"09:10","brk":"00:00","end":"13:10","flag":"","rd":"","pd":""},{"date":"2026-06-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-06-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"24":{"contractMins":2100,"days":[{"date":"2026-06-08","start":"08:30","brk":"00:50","end":"17:00","flag":"","rd":"04:00","pd":"03:40"},{"date":"2026-06-09","start":"08:30","brk":"00:40","end":"17:15","flag":"","rd":"04:00","pd":"04:05"},{"date":"2026-06-10","start":"09:00","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-06-11","start":"08:00","brk":"01:00","end":"17:30","flag":"","rd":"00:00","pd":"08:30"},{"date":"2026-06-12","start":"08:15","brk":"00:30","end":"15:00","flag":"","rd":"00:30","pd":"05:45"},{"date":"2026-06-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-06-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"25":{"contractMins":2100,"days":[{"date":"2026-06-15","start":"09:00","brk":"00:45","end":"19:00","flag":"","rd":"02:00","pd":"07:15"},{"date":"2026-06-16","start":"09:00","brk":"00:35","end":"17:30","flag":"","rd":"04:00","pd":"03:55"},{"date":"2026-06-17","start":"09:10","brk":"00:45","end":"18:20","flag":"","rd":"01:00","pd":"05:35"},{"date":"2026-06-18","start":"09:00","brk":"00:45","end":"19:30","flag":"","rd":"00:00","pd":"06:15"},{"date":"2026-06-19","start":"08:15","brk":"00:00","end":"13:00","flag":"","rd":"00:00","pd":"03:30"},{"date":"2026-06-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-06-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"26":{"contractMins":2100,"days":[{"date":"2026-06-22","start":"08:20","brk":"00:45","end":"17:00","flag":"","rd":"02:00","pd":"05:55"},{"date":"2026-06-23","start":"09:00","brk":"00:45","end":"17:00","flag":"","rd":"00:00","pd":"07:15"},{"date":"2026-06-24","start":"07:45","brk":"00:45","end":"16:45","flag":"","rd":"00:00","pd":"08:15"},{"date":"2026-06-25","start":"07:30","brk":"00:45","end":"17:00","flag":"","rd":"00:00","pd":"08:45"},{"date":"2026-06-26","start":"07:10","brk":"00:30","end":"12:00","flag":"","rd":"00:00","pd":"03:20"},{"date":"2026-06-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-06-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"27":{"contractMins":2100,"days":[{"date":"2026-06-29","start":"08:20","brk":"01:30","end":"17:00","flag":"","rd":"02:00","pd":"05:10"},{"date":"2026-06-30","start":"08:15","brk":"01:00","end":"17:45","flag":"","rd":"","pd":""},{"date":"2026-07-01","start":"09:00","brk":"00:45","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-07-02","start":"09:00","brk":"00:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-07-03","start":"09:00","brk":"00:00","end":"13:30","flag":"","rd":"","pd":""},{"date":"2026-07-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"28":{"contractMins":2100,"days":[{"date":"2026-07-06","start":"06:00","brk":"00:25","end":"17:35","flag":"","rd":"","pd":""},{"date":"2026-07-07","start":"08:30","brk":"00:45","end":"17:30","flag":"","rd":"02:00","pd":"06:15"},{"date":"2026-07-08","start":"08:30","brk":"01:00","end":"17:00","flag":"","rd":"","pd":""},{"date":"2026-07-09","start":"09:00","brk":"00:45","end":"16:30","flag":"","rd":"","pd":""},{"date":"2026-07-10","start":"09:00","brk":"00:00","end":"12:00","flag":"","rd":"","pd":""},{"date":"2026-07-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"29":{"contractMins":2100,"days":[{"date":"2026-07-13","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"30":{"contractMins":2100,"days":[{"date":"2026-07-20","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-21","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-22","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-23","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-24","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-07-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"31":{"contractMins":2100,"days":[{"date":"2026-07-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-07-31","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-08-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"32":{"contractMins":2100,"days":[{"date":"2026-08-03","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-08-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"33":{"contractMins":2100,"days":[{"date":"2026-08-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"34":{"contractMins":2100,"days":[{"date":"2026-08-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"35":{"contractMins":2100,"days":[{"date":"2026-08-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-08-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"36":{"contractMins":2100,"days":[{"date":"2026-08-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"37":{"contractMins":2100,"days":[{"date":"2026-09-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"38":{"contractMins":2100,"days":[{"date":"2026-09-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-17","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-09-18","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-09-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"39":{"contractMins":2100,"days":[{"date":"2026-09-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"40":{"contractMins":2100,"days":[{"date":"2026-09-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-09-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"41":{"contractMins":2100,"days":[{"date":"2026-10-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"42":{"contractMins":2100,"days":[{"date":"2026-10-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"43":{"contractMins":2100,"days":[{"date":"2026-10-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"44":{"contractMins":2100,"days":[{"date":"2026-10-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-10-31","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"45":{"contractMins":2100,"days":[{"date":"2026-11-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"46":{"contractMins":2100,"days":[{"date":"2026-11-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"47":{"contractMins":2100,"days":[{"date":"2026-11-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"48":{"contractMins":2100,"days":[{"date":"2026-11-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-24","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-25","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-28","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-11-29","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"49":{"contractMins":2100,"days":[{"date":"2026-11-30","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-05","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-06","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"50":{"contractMins":2100,"days":[{"date":"2026-12-07","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-08","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-09","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-10","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-11","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-12","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-13","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"51":{"contractMins":2100,"days":[{"date":"2026-12-14","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-15","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-16","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-17","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-18","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-19","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-20","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"52":{"contractMins":2100,"days":[{"date":"2026-12-21","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-22","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-23","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-24","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-12-25","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-12-26","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-12-27","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]},"53":{"contractMins":1260,"days":[{"date":"2025-12-29","start":"08:00","brk":"00:00","end":"15:00","flag":"holiday","rd":"","pd":""},{"date":"2025-12-30","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2025-12-31","start":"","brk":"","end":"","flag":"holiday","rd":"","pd":""},{"date":"2026-01-01","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-02","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-03","start":"","brk":"","end":"","flag":"","rd":"","pd":""},{"date":"2026-01-04","start":"","brk":"","end":"","flag":"","rd":"","pd":""}]}}};
+
+// State always loaded from SEED in the file — localStorage used only as
+// a fast cache for unsaved edits within the same session.
+// On open, we check if the file's SEED is newer than the cache by comparing
+// a generation key. If SEED has changed (new save), we use SEED.
+const SEED_KEY='e3seed_'+btoa(JSON.stringify(SEED)).slice(-16);
+let S=null;
+const cached=ld();
+if(cached&&localStorage.getItem('e3seed_key')===SEED_KEY){
+  S=cached; // same session, use cache
+} else {
+  // Fresh open or new file version — load from SEED
+  S={activeYear:String(Math.max(...Object.keys(SEED).map(Number))),years:{}};
+  Object.entries(SEED).forEach(([yr,wks])=>{
+    const weeks={};
+    Object.entries(wks).forEach(([wn,wd])=>{
+      weeks[+wn]={contractMins:wd.contractMins,days:wd.days.map(d=>({
+        date:d.date,start:d.start||'',brk:d.brk||'',end:d.end||'',flag:d.flag||'',rd:d.rd||'',pd:d.pd||''
+      }))};
+    });
+    S.years[+yr]={weeks};
+  });
+  sv(S);
+  try{localStorage.setItem('e3seed_key',SEED_KEY);}catch(e){}
+}
+if(false){// (dead block — kept for structure parity)
+  // Migrate missing fields
+  let dirty=false;
+  Object.values(S.years).forEach(yd=>Object.values(yd.weeks).forEach(w=>w.days.forEach(d=>{
+    if(d.rd===undefined){d.rd='';dirty=true;}
+    if(d.pd===undefined){d.pd='';dirty=true;}
+  })));
+  if(dirty)sv(S);
+}
+
+function weekTotals(yr,wn){
+  const w=S.years[yr]?.weeks[wn];if(!w)return null;
+  let worked=0,holiday=0,planned=0,hasData=false,rd=0,pd=0;
+  const dayMins=Math.round((w.contractMins??2100)/5);
+  w.days.forEach(d=>{
+    const f=d.flag||'';
+    if(f==='holiday'){holiday+=dayMins;hasData=true;return;}
+    const m=calcDay(d.start,d.brk,d.end);
+    if(m!=null){
+      if(f==='planning')planned+=m;else{worked+=m;hasData=true;}
+    }
+    const r=parsePH(d.rd);if(r)rd+=r;
+    const p=parsePH(d.pd);if(p)pd+=p;
+  });
+  const contract=w.contractMins??2100,logged=worked+holiday;
+  return{worked,holiday,planned,contract,hasData,logged,remaining:contract-logged,rd,pd};
+}
+
+// Hero
+function renderHero(){
+  const el=document.getElementById('hero');if(!el)return;
+  const t=weekTotals(TOD_Y,TOD_W);
+  if(!t){el.innerHTML='';return;}
+  const mon=mondayOf(TOD_Y,TOD_W);
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const rem=t.remaining,rn=rem<=0,delta=t.logged-t.contract;
+  el.innerHTML=`
+    <div class="hcard" style="--hc:var(--tbd)">
+      <div class="wk-id-lbl">&#9679; W${TOD_W} now</div>
+      <div class="wk-id-dates">${fd(mon)}<br>${fd(sun)}</div>
+      ${(t.rd||t.pd)?`<div class="proj-chips">${t.rd?`<span class="pchip pchip-rd">R&D ${fm(t.rd)}</span>`:''}${t.pd?`<span class="pchip pchip-pd">PD ${fm(t.pd)}</span>`:''}</div>`:''}
+    </div>
+    <div class="hcard" style="--hc:var(--amber)">
+      <div class="hcard-lbl">Worked</div>
+      <div class="hcard-val ca">${fm(t.worked)}</div>
+      <div class="hcard-days ca">${mD(t.worked)||'none'} &middot; 7h=1d</div>
+      <div class="hcard-sub">${fm(t.contract)} contracted</div>
+    </div>
+    <div class="hcard" style="--hc:${rn?'var(--green)':'var(--amber)'}">
+      <div class="hcard-lbl">${rn?'Excess':'Still to do'}</div>
+      <div class="hcard-val ${rn?'cg':'ca'}">${rn?'+':''}${fm(Math.abs(rem))}</div>
+      <div class="hcard-days ${rn?'cg':'ca'}">${mD(Math.abs(rem))||'0d'} &middot; 7h=1d</div>
+      <div class="hcard-sub">${t.holiday?'incl. '+fm(t.holiday)+' hol':'&nbsp;'}</div>
+    </div>
+    <div class="hcard" style="--hc:var(--teal)">
+      <div class="hcard-lbl">Holiday</div>
+      <div class="hcard-val ct">${t.holiday?fm(t.holiday):'&mdash;'}</div>
+      <div class="hcard-days ct">${mD(t.holiday)||'&nbsp;'}</div>
+      <div class="hcard-sub">7h = 1 day</div>
+    </div>`;
+}
+
+function renderStats(){
+  const yr=+S.activeYear,yd=S.years[yr];
+  let tw=0,th=0,nw=0,ex=0;
+  Object.keys(yd.weeks).forEach(wn=>{
+    const t=weekTotals(yr,+wn);if(!t||!t.hasData)return;
+    tw+=t.worked;th+=t.holiday;nw++;if(t.logged>t.contract)ex+=t.logged-t.contract;
+  });
+  document.getElementById('stats').innerHTML=`
+    <div class="scard"><div class="scard-lbl">Total worked</div><div class="scard-val ca">${fm(tw)}</div><div class="scard-sub">${nw} weeks</div></div>
+    <div class="scard"><div class="scard-lbl">Holiday taken</div><div class="scard-val ct">${fm(th)}</div><div class="scard-sub">${mD(th)||'0d'} @ 7h</div></div>
+    <div class="scard"><div class="scard-lbl">Avg / week</div><div class="scard-val cb">${fm(nw?Math.round(tw/nw):0)}</div><div class="scard-sub">worked weeks</div></div>
+    <div class="scard"><div class="scard-lbl">Total excess</div><div class="scard-val ${ex>0?'cr':'cg'}">${ex>0?'+':''}${fm(ex)}</div><div class="scard-sub">over contract</div></div>`;
+}
+
+let _chart=null;
+function renderChart(){
+  const yr=+S.activeYear,yd=S.years[yr];
+  const wks=Object.keys(yd.weeks).sort((a,b)=>+a-+b);
+  const labels=[],workedBase=[],rdData=[],pdData=[],holidayData=[],planningData=[],contractData=[],wc=[];
+  wks.forEach(wn=>{
+    const t=weekTotals(yr,+wn);
+    const isFut=yr>TOD_Y||(yr===TOD_Y&&+wn>TOD_W);
+    if(!t||(!t.hasData&&t.planned===0&&!isFut))return;
+    labels.push('W'+wn);
+    const workedH=+(t.worked/60).toFixed(2);
+    let rdH=+(t.rd/60).toFixed(2);
+    let pdH=+(t.pd/60).toFixed(2);
+    // If worked but no project split at all, assume 100% PD
+    if(t.worked>0&&t.rd===0&&t.pd===0){
+      pdH=workedH;rdH=0;
+    }
+    // If only one side filled, other = remainder
+    else if(t.worked>0&&t.rd>0&&t.pd===0){
+      pdH=+Math.max(0,workedH-rdH).toFixed(2);
+    }
+    else if(t.worked>0&&t.pd>0&&t.rd===0){
+      rdH=+Math.max(0,workedH-pdH).toFixed(2);
+    }
+    // base = any worked not accounted for by project hours (rounding slack)
+    const base=+Math.max(0,workedH-rdH-pdH).toFixed(2);
+    workedBase.push(base||null);
+    rdData.push(rdH||null);
+    pdData.push(pdH||null);
+    holidayData.push(t.holiday?+(t.holiday/60).toFixed(2):null);
+    planningData.push(t.planned?+(t.planned/60).toFixed(2):null);
+    contractData.push(+(t.contract/60).toFixed(2));
+    const isNow=yr===TOD_Y&&+wn===TOD_W;
+    const total=t.worked+t.holiday;
+    wc.push(`rgba(${total>t.contract?'240,165,0':'34,197,94'},${isNow?1:.7})`);
+  });
+  const canvas=document.getElementById('chart');if(!canvas)return;
+  if(_chart){_chart.destroy();_chart=null;}
+  Chart.defaults.color='#555e78';Chart.defaults.font.family="'IBM Plex Mono'";Chart.defaults.font.size=9;
+  _chart=new Chart(canvas,{type:'bar',data:{labels,datasets:[
+    {label:'Worked',data:workedBase,backgroundColor:wc,barPercentage:.6,categoryPercentage:.8,stack:'h',order:2},
+    {label:'R&D',data:rdData,backgroundColor:'rgba(245,158,11,.7)',barPercentage:.6,categoryPercentage:.8,stack:'h',order:2},
+    {label:'PD',data:pdData,backgroundColor:'rgba(129,140,248,.7)',barPercentage:.6,categoryPercentage:.8,stack:'h',order:2},
+    {label:'Holiday',data:holidayData,backgroundColor:'rgba(6,182,212,.6)',barPercentage:.6,categoryPercentage:.8,stack:'h',order:2},
+    {label:'Planning',data:planningData,backgroundColor:'rgba(167,139,250,.5)',barPercentage:.6,categoryPercentage:.8,stack:'h',order:2},
+    {label:'Contract',data:contractData,type:'line',borderColor:'rgba(150,160,180,.6)',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,tension:0,order:1},
+  ]},options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:150},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#111520',borderColor:'#232940',borderWidth:1,
+      titleColor:'#dde3f0',bodyColor:'#8891aa',padding:6,
+      callbacks:{title:c=>'W'+c[0].label.replace('W',''),label:c=>c.raw?`${c.dataset.label}: ${c.raw}h`:null}}},
+    scales:{
+      x:{grid:{color:'rgba(35,41,64,.8)'},stacked:true,ticks:{maxRotation:0}},
+      y:{grid:{color:'rgba(35,41,64,.8)'},border:{dash:[3,3]},ticks:{callback:v=>v+'h'},beginAtZero:true,stacked:true}
+    },
+    onClick:(_,els)=>{if(!els.length)return;
+      const wn=+labels[els[0].index].replace('W','');
+      scrollToWeek(+S.activeYear,wn);
+    }
+  }});
+}
+
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function renderWeek(yr,wn){
+  const w=S.years[yr]?.weeks[wn];if(!w)return'';
+  const isCur=yr===TOD_Y&&wn===TOD_W;
+  const mon=mondayOf(yr,wn);const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const t=weekTotals(yr,wn);
+  const delta=t?t.logged-t.contract:0;
+  const dCls=delta>10?'cr':delta<-10?'ca':'cm';
+  const sumStr=t?.hasData?(t.remaining<=0?`+${fm(-t.remaining)} excess`:`${fm(t.remaining)} left`):'';
+
+  const ths=w.days.map((d,di)=>{
+    const isW=di>=5,isN=d.date===TOD_ISO;
+    const dt=new Date(d.date+'T12:00');
+    return`<th class="dhd${isW?' wknd':''}${isN?' today':''}">${DAYS[di]}<br><span style="font-weight:400;opacity:.7;font-size:9px">${dt.getDate()} ${dt.toLocaleString('default',{month:'short'})}</span></th>`;
+  }).join('');
+
+  function inpRow(key,ph){
+    return w.days.map((d,di)=>{
+      const isW=di>=5,isN=d.date===TOD_ISO;
+      const f=d.flag||'';
+      const isH=f==='holiday',isP=f==='planning';
+      const fcls=isH?' fl-hol':isP?' fl-plan':'';
+      const icls=isH?' hol':isP?' plan':'';
+      let content;
+      if(isH&&key!=='start'){
+        content=`<span style="font-size:9px;color:var(--teal);opacity:.4">${key==='brk'?'hol':''}</span>`;
+      } else {
+        content=`<input class="ti${icls}" id="i-${yr}-${wn}-${di}-${key}" value="${d[key]||''}" placeholder="${ph}" maxlength="5" autocomplete="off">`;
+      }
+      return`<td class="dtd${isW?' wknd':''}${isN?' today':''}${fcls}">${content}</td>`;
+    }).join('');
+  }
+
+  const flagRow=w.days.map((d,di)=>{
+    const isW=di>=5,isN=d.date===TOD_ISO;
+    const f=d.flag||'';
+    return`<td class="dtd${isW?' wknd':''}${isN?' today':''}" style="background:var(--bg3)">
+      <div style="display:flex;gap:2px;justify-content:center">
+        <button class="fl${f==='holiday'?' hol':''}" onclick="cycleFlag(${yr},${wn},${di},'holiday')">H</button>
+        <button class="fl${f==='planning'?' plan':''}" onclick="cycleFlag(${yr},${wn},${di},'planning')">P</button>
+      </div></td>`;
+  }).join('');
+
+  const projRow=w.days.map((d,di)=>{
+    const isW=di>=5,isN=d.date===TOD_ISO;
+    const f=d.flag||'';
+    if(f==='holiday'||f==='planning'){
+      return`<td class="dtd${isW?' wknd':''}${isN?' today':''}" style="opacity:.3;text-align:center;font-size:9px;color:var(--text3)">—</td>`;
+    }
+    return`<td class="dtd proj-td${isW?' wknd':''}${isN?' today':''}">
+      <div class="proj-pair">
+        <div class="proj-row rd"><span class="ptag">R&D</span><input class="pi rd" id="prd-${yr}-${wn}-${di}" value="${d.rd||''}" placeholder="—" maxlength="5" autocomplete="off"></div>
+        <div class="proj-row pd"><span class="ptag">PD</span><input class="pi pd" id="ppd-${yr}-${wn}-${di}" value="${d.pd||''}" placeholder="—" maxlength="5" autocomplete="off"></div>
+      </div></td>`;
+  }).join('');
+
+  const hrsRow=w.days.map((d,di)=>{
+    const isW=di>=5,isN=d.date===TOD_ISO;
+    const f=d.flag||'';
+    let m,cls;
+    if(f==='holiday'){m=Math.round((w.contractMins??2100)/5);cls='hol';}
+    else{m=calcDay(d.start,d.brk,d.end);cls=m==null?'mt':f==='planning'?'plan':m<0?'neg':'pos';}
+    return`<td class="dtd${isW?' wknd':''}${isN?' today':''}">
+      <span class="hrs ${cls}" id="hrs-${yr}-${wn}-${di}">${m!=null?fm(m):'—'}</span></td>`;
+  }).join('');
+
+  const projMini=(t?.rd||t?.pd)?`<div class="wk-proj-mini">
+    ${t.rd?`<span class="crd">R${fm(t.rd)}</span>`:''}${t.pd?`<span class="cpd">P${fm(t.pd)}</span>`:''}</div>`:'';
+
+  return`<div class="wk${isCur?' now':''}" id="wk-${yr}-${wn}">
+  <div class="wk-hdr" onclick="toggleWk(${yr},${wn})">
+    <span class="chv" id="chv-${yr}-${wn}">&#9660;</span>
+    <span class="wk-num">W${wn}</span>
+    <span class="wk-range">${fd(mon)} &ndash; ${fd(sun)}</span>
+    ${projMini}
+    <span class="wk-sum" id="wsum-${yr}-${wn}">${sumStr}</span>
+  </div>
+  <div class="wk-body" id="wkb-${yr}-${wn}"><div class="tbl-wrap"><table class="wt">
+    <thead><tr><th class="rlbl"></th>${ths}</tr></thead>
+    <tbody>
+      <tr><td class="rlbl">Start</td>${inpRow('start','08:30')}</tr>
+      <tr><td class="rlbl">Break</td>${inpRow('brk','00:30')}</tr>
+      <tr><td class="rlbl">End</td>${inpRow('end','17:00')}</tr>
+      <tr><td class="rlbl" style="background:var(--bg3)">Flag</td>${flagRow}</tr>
+      <tr><td class="rlbl" style="font-size:8px">Project</td>${projRow}</tr>
+      <tr><td class="rlbl">Hours</td>${hrsRow}</tr>
+    </tbody>
+  </table></div>
+  <div class="wk-foot">
+    <span class="cm" style="font-size:10px">Contract</span>
+    <input class="ci" type="number" id="ci-${yr}-${wn}" value="${Math.round((w.contractMins??2100)/60)}" min="0" max="80" step="1" onchange="setContract(${yr},${wn},this.value)"> <span class="cm" style="font-size:10px">h</span>
+    <div class="tots">
+      <div class="ti2"><span class="tl">worked</span><span class="ca">${fm(t?.worked)}</span></div>
+      ${t?.holiday?`<div class="ti2"><span class="tl">hol</span><span class="ct">${fm(t.holiday)}</span></div>`:''}
+      ${t?.planned?`<div class="ti2"><span class="tl">plan</span><span class="cp">${fm(t.planned)}</span></div>`:''}
+      <div class="ti2"><span class="tl">ctr</span><span class="cb">${fm(t?.contract)}</span></div>
+      <div class="ti2"><span class="tl">&#916;</span><span class="${dCls}">${t?(delta>=0?'+':'')+fm(delta):'—'}</span></div>
+      ${t?.rd?`<div class="ti2"><span class="crd">R&D</span><span class="cm">${fm(t.rd)}</span></div>`:''}
+      ${t?.pd?`<div class="ti2"><span class="cpd">PD</span><span class="cm">${fm(t.pd)}</span></div>`:''}
+    </div>
+  </div>
+</div></div>`;
+}
+
+// DOM patches — no full re-render
+function patchHrs(yr,wn,di){
+  const d=S.years[yr].weeks[wn].days[di];
+  const w=S.years[yr].weeks[wn];
+  const f=d.flag||'';
+  const el=document.getElementById(`hrs-${yr}-${wn}-${di}`);if(!el)return;
+  let m,cls;
+  if(f==='holiday'){m=Math.round((w.contractMins??2100)/5);cls='hol';}
+  else{m=calcDay(d.start,d.brk,d.end);cls=m==null?'mt':f==='planning'?'plan':m<0?'neg':'pos';}
+  el.textContent=m!=null?fm(m):'—';el.className='hrs '+cls;
+}
+function patchFlag(yr,wn,di){
+  const f=S.years[yr].weeks[wn].days[di].flag||'';
+  const hB=document.querySelector(`[onclick="cycleFlag(${yr},${wn},${di},'holiday')"]`);
+  const pB=document.querySelector(`[onclick="cycleFlag(${yr},${wn},${di},'planning')"]`);
+  if(hB)hB.className='fl'+(f==='holiday'?' hol':'');
+  if(pB)pB.className='fl'+(f==='planning'?' plan':'');
+  ['start','brk','end'].forEach(k=>{
+    const inp=document.getElementById(`i-${yr}-${wn}-${di}-${k}`);
+    if(inp)inp.className='ti'+(f==='holiday'?' hol':f==='planning'?' plan':'');
+  });
+  // Update td background
+  const tds=document.querySelectorAll(`#wk-${yr}-${wn} .dtd`);
+  // We identify day column by index: col di corresponds to td index di (0-based after label col)
+  // Simpler: just re-render this week
+  // Actually td patching is complex — just patch what we can
+}
+function patchSum(yr,wn){
+  const t=weekTotals(yr,wn);
+  const el=document.getElementById(`wsum-${yr}-${wn}`);
+  if(el&&t)el.textContent=t.hasData?(t.remaining<=0?`+${fm(-t.remaining)} excess`:`${fm(t.remaining)} left`):'';
+  const foot=document.querySelector(`#wk-${yr}-${wn} .tots`);
+  if(foot&&t){
+    const delta=t.logged-t.contract;
+    const dCls=delta>10?'cr':delta<-10?'ca':'cm';
+    foot.innerHTML=`
+      <div class="ti2"><span class="tl">worked</span><span class="ca">${fm(t.worked)}</span></div>
+      ${t.holiday?`<div class="ti2"><span class="tl">hol</span><span class="ct">${fm(t.holiday)}</span></div>`:''}
+      ${t.planned?`<div class="ti2"><span class="tl">plan</span><span class="cp">${fm(t.planned)}</span></div>`:''}
+      <div class="ti2"><span class="tl">ctr</span><span class="cb">${fm(t.contract)}</span></div>
+      <div class="ti2"><span class="tl">&#916;</span><span class="${dCls}">${(delta>=0?'+':'')+fm(delta)}</span></div>
+      ${t.rd?`<div class="ti2"><span class="crd">R&D</span><span class="cm">${fm(t.rd)}</span></div>`:''}
+      ${t.pd?`<div class="ti2"><span class="cpd">PD</span><span class="cm">${fm(t.pd)}</span></div>`:''}`;
+  }
+}
+
+function saveDay(yr,wn,di,key,val){
+  // Normalise time on save so stored value is always HH:MM
+  const norm=normaliseTime(val);
+  const canonical=toM(norm)!=null?( ()=>{const t=toM(norm);return Math.floor(t/60).toString().padStart(2,'0')+':'+(t%60).toString().padStart(2,'0');} )():val;
+  S.years[yr].weeks[wn].days[di][key]=canonical;sv(S);
+  // Update the input to show normalised value
+  const inp=document.getElementById('i-'+yr+'-'+wn+'-'+di+'-'+key);
+  if(inp&&inp!==document.activeElement)inp.value=canonical;
+  patchHrs(yr,wn,di);patchSum(yr,wn);
+  renderHero();renderStats();renderChart();
+}
+function saveProjH(yr,wn,di,proj,val){
+  const d=S.years[yr].weeks[wn].days[di];
+  const w=S.years[yr].weeks[wn];
+  // Normalise input (830→08:30) before storing
+  const normVal=normaliseTime(val);
+  const parsedMins=parsePH(normVal);
+  const canonical=parsedMins!=null
+    ?(Math.floor(parsedMins/60).toString().padStart(2,'0')+':'+(parsedMins%60).toString().padStart(2,'0'))
+    :val;
+  d[proj]=canonical;
+  // Update this input to show normalised value
+  const thisInp=document.getElementById('p'+proj+'-'+yr+'-'+wn+'-'+di);
+  if(thisInp&&thisInp!==document.activeElement)thisInp.value=canonical;
+  // Auto-fill the other project field = day total - this field
+  const dayMins=calcDay(d.start,d.brk,d.end);
+  const enteredMins=parsePH(val);
+  if(dayMins!=null&&enteredMins!=null&&enteredMins<=dayMins){
+    const other=proj==='rd'?'pd':'rd';
+    const otherMins=dayMins-enteredMins;
+    const otherFmt=Math.floor(otherMins/60).toString().padStart(2,'0')+':'+(otherMins%60).toString().padStart(2,'0');
+    d[other]=otherFmt;
+    // Update the other input's displayed value
+    const otherId='p'+other+'-'+yr+'-'+wn+'-'+di;
+    const otherInp=document.getElementById(otherId);
+    if(otherInp&&otherInp!==document.activeElement)otherInp.value=otherFmt;
+  }
+  sv(S);
+  patchSum(yr,wn);renderHero();renderStats();renderChart();
+}
+function cycleFlag(yr,wn,di,flag){
+  const d=S.years[yr].weeks[wn].days[di];
+  d.flag=(d.flag===flag?'':flag);sv(S);
+  // Re-render just this week — simpler than patching td backgrounds
+  const container=document.getElementById(`wk-${yr}-${wn}`);
+  if(container){
+    const newHtml=renderWeek(yr,wn);
+    container.outerHTML=newHtml;
+    attachListeners(yr,wn);
+  }
+  patchSum(yr,wn);renderHero();renderStats();renderChart();
+}
+function setContract(yr,wn,val){
+  S.years[yr].weeks[wn].contractMins=Math.round((parseFloat(val)||0)*60);sv(S);
+  patchSum(yr,wn);renderHero();renderStats();renderChart();
+}
+
+function attachListeners(yr,wn){
+  const KEYS=['start','brk','end'];
+  const order=[];
+  for(let di=0;di<7;di++)for(const k of KEYS)order.push(`i-${yr}-${wn}-${di}-${k}`);
+  for(let di=0;di<7;di++){
+    for(const key of KEYS){
+      const id=`i-${yr}-${wn}-${di}-${key}`;
+      const inp=document.getElementById(id);if(!inp)continue;
+      inp.addEventListener('input',e=>saveDay(yr,wn,di,key,e.target.value));
+      inp.addEventListener('change',e=>saveDay(yr,wn,di,key,e.target.value));
+      inp.addEventListener('keydown',e=>{
+        if(e.key!=='Enter')return;
+        e.preventDefault();saveDay(yr,wn,di,key,inp.value);
+        const idx=order.indexOf(id);
+        for(let i=idx+1;i<order.length;i++){
+          const nx=document.getElementById(order[i]);
+          if(nx){nx.focus();nx.select();break;}
+        }
+      });
+    }
+    for(const proj of['rd','pd']){
+      const pid='p'+proj+'-'+yr+'-'+wn+'-'+di;
+      const pinp=document.getElementById(pid);if(!pinp)continue;
+      pinp.addEventListener('input',e=>saveProjH(yr,wn,di,proj,e.target.value));
+      pinp.addEventListener('change',e=>saveProjH(yr,wn,di,proj,e.target.value));
+      pinp.addEventListener('keydown',e=>{
+        if(e.key==='Tab'){
+          // Tab within same day: RD->PD, PD->next day RD
+          // (browser handles this naturally with tabIndex, but Enter also moves)
+        }
+        if(e.key!=='Enter')return;
+        e.preventDefault();saveProjH(yr,wn,di,proj,pinp.value);
+        const nid=proj==='rd'?('ppd-'+yr+'-'+wn+'-'+di):('prd-'+yr+'-'+wn+'-'+(di+1));
+        const nx=document.getElementById(nid);if(nx){nx.focus();nx.select();}
+      });
+    }
+  }
+  patchSum(yr,wn);
+}
+
+function toggleWk(yr,wn){
+  const b=document.getElementById('wkb-'+yr+'-'+wn);
+  const c=document.getElementById('chv-'+yr+'-'+wn);
+  if(!b)return;
+  const closing=!b.classList.contains('closed');
+  b.classList.toggle('closed',closing);
+  if(c)c.textContent=closing?'▶':'▼';
+}
+function openWk(yr,wn){
+  const b=document.getElementById('wkb-'+yr+'-'+wn);
+  const c=document.getElementById('chv-'+yr+'-'+wn);
+  if(b)b.classList.remove('closed');
+  if(c)c.textContent='▼';
+}
+function closeWk(yr,wn){
+  const b=document.getElementById('wkb-'+yr+'-'+wn);
+  const c=document.getElementById('chv-'+yr+'-'+wn);
+  if(b)b.classList.add('closed');
+  if(c)c.textContent='▶';
+}
+
+function jumpToday(){
+  if(String(S.activeYear)!==String(TOD_Y)){
+    S.activeYear=String(TOD_Y);sv(S);
+    renderAll();
+  }
+  openWk(TOD_Y,TOD_W);
+  const el=document.getElementById('wk-'+TOD_Y+'-'+TOD_W);
+  if(!el)return;
+  const hdrH=document.getElementById('hdr').offsetHeight;
+  // Walk offsetParent chain for true absolute position — works in any container
+  let absTop=0,node=el;
+  while(node){absTop+=node.offsetTop;node=node.offsetParent;}
+  // Try all possible scroll roots
+  for(const root of[document.scrollingElement,document.documentElement,document.body]){
+    if(root&&root.scrollHeight>root.clientHeight){
+      root.scrollTop=Math.max(0,absTop-hdrH-8);
+      break;
+    }
+  }
+  const inp=el.querySelector('input.ti');
+  if(inp){inp.focus();inp.select();}
+}
+
+function renderYearBtns(){
+  const c=document.getElementById('yr-btns');c.innerHTML='';
+  Object.keys(S.years).sort().forEach(y=>{
+    const b=document.createElement('button');
+    b.className='yr-btn'+(y==S.activeYear?' on':'');
+    b.textContent=y;b.onclick=()=>{S.activeYear=String(y);sv(S);renderAll();};
+    c.appendChild(b);
+  });
+}
+function addYear(){
+  const nxt=Math.max(...Object.keys(S.years).map(Number))+1;
+  const h=prompt(`Add ${nxt} — weekly contracted hours?`,'35');if(h===null)return;
+  const hrs=parseFloat(h)||35,n=weeksInYear(nxt),weeks={};
+  for(let w=1;w<=n;w++){
+    const mon=mondayOf(nxt,w);
+    weeks[w]={contractMins:Math.round(hrs*60),days:Array.from({length:7},(_,d)=>{
+      const dt=new Date(mon);dt.setDate(mon.getDate()+d);
+      return{date:dt.toISOString().slice(0,10),start:'',brk:'',end:'',flag:'',rd:'',pd:''};
+    })};
+  }
+  S.years[nxt]={weeks};S.activeYear=String(nxt);sv(S);renderAll();
+}
+// Persistent file handle for File System Access API (works when opened from disk or SharePoint)
+let _fileHandle=null;
+
+// HTML shell constants — set once at load, never change, never grow
+const _H1="<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">\n<title>SDL Timesheets<\/title>\n<link rel=\"icon\" type=\"image/svg+xml\" href=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iI2YwYTUwMCIvPjx0ZXh0IHg9IjE2IiB5PSIyMyIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiMwMDAiPkUzPC90ZXh0Pjwvc3ZnPg==\">\n\n<link href=\"https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap\" rel=\"stylesheet\">\n<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js\"><\/script>\n<style>\n*{box-sizing:border-box;margin:0;padding:0}\n:root{\n  --bg:#0b0e14;--bg2:#111520;--bg3:#181d2a;--bg4:#1e2436;\n  --border:#232940;--border2:#2e3650;\n  --text:#dde3f0;--text2:#8891aa;--text3:#555e78;\n  --amber:#f0a500;--adim:rgba(240,165,0,.15);--abd:rgba(240,165,0,.3);\n  --green:#22c55e;--gdim:rgba(34,197,94,.15);--gbd:rgba(34,197,94,.3);\n  --red:#ef4444;--rdim:rgba(239,68,68,.15);--rbd:rgba(239,68,68,.3);\n  --teal:#06b6d4;--tdim:rgba(6,182,212,.12);--tbd:rgba(6,182,212,.3);\n  --purple:#a78bfa;--pdim:rgba(167,139,250,.15);--pbd:rgba(167,139,250,.3);\n  --blue:#3b82f6;\n  --RD:#f59e0b;--RDdim:rgba(245,158,11,.18);--RDbd:rgba(245,158,11,.4);\n  --PD:#818cf8;--PDdim:rgba(129,140,248,.18);--PDbd:rgba(129,140,248,.4);\n  --font:'IBM Plex Sans',-apple-system,sans-serif;\n  --mono:'IBM Plex Mono',monospace;\n  --hh:44px; /* header height \u2014 used in JS scroll calc */\n}\nbody{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}\nbody.light{\n  --bg:#f0f2f7;--bg2:#fff;--bg3:#e8eaef;--bg4:#dde0e8;\n  --border:#c8ccd8;--border2:#b0b5c4;\n  --text:#1a1f2e;--text2:#4a5068;--text3:#8891aa;\n  --amber:#b45309;--adim:#fef3c7;--abd:#f59e0b;\n  --green:#15803d;--gdim:#dcfce7;--gbd:#22c55e;\n  --red:#b91c1c;--rdim:#fee2e2;--rbd:#ef4444;\n  --teal:#0e7490;--tdim:#cffafe;--tbd:#06b6d4;\n  --purple:#6d28d9;--pdim:#ede9fe;--pbd:#a78bfa;\n  --RD:#92400e;--RDdim:#fef3c7;--RDbd:#f59e0b;\n  --PD:#4338ca;--PDdim:#e0e7ff;--PDbd:#818cf8;\n}\n\n/* \u2500\u2500 FIXED HEADER \u2500\u2500 */\n#hdr{\n  position:sticky;top:0;left:0;right:0;z-index:999;\n  background:var(--bg2);border-bottom:1px solid var(--border);\n  height:var(--hh);display:flex;align-items:center;padding:0 16px;gap:8px;\n}\n#hdr .logo{font-weight:600;font-size:14px;margin-right:8px}\n#hdr .logo span{color:var(--amber)}\n.btn{background:transparent;border:1px solid var(--border2);color:var(--text2);\n  padding:3px 10px;border-radius:4px;font-size:11px;cursor:pointer;font-family:var(--font)}\n.btn:hover{background:var(--bg3);color:var(--text)}\n.btn-now{border-color:var(--tbd);color:var(--teal)}\n.btn-now:hover{background:var(--tdim)}\n.yr-btns{display:flex;gap:2px;margin-left:4px}\n.yr-btn{background:none;border:none;color:var(--text3);padding:2px 8px;font-size:12px;\n  cursor:pointer;font-family:var(--font);border-radius:3px}\n.yr-btn:hover{color:var(--text2);background:var(--bg3)}\n.yr-btn.on{color:var(--amber);font-weight:600;background:var(--adim)}\n.hdr-right{margin-left:auto;display:flex;gap:4px;align-items:center}\n\n/* \u2500\u2500 MAIN \u2014 padded below fixed header \u2500\u2500 */\n#main{padding-top:8px;max-width:1060px;margin:0 auto;padding-left:16px;padding-right:16px;padding-bottom:60px}\n\n/* \u2500\u2500 HERO CARDS \u2500\u2500 */\n.hero-grid{display:grid;grid-template-columns:170px 1fr 1fr 1fr;gap:8px;margin-bottom:14px}\n.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px;position:relative}\n.hcard::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 7px 7px;background:var(--hc,var(--border))}\n.hcard-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);font-weight:600;margin-bottom:4px}\n.hcard-val{font-size:28px;font-weight:300;font-family:var(--mono);letter-spacing:-1px;line-height:1}\n.hcard-days{font-size:11px;font-weight:500;margin-top:2px}\n.hcard-sub{font-size:10px;color:var(--text3);margin-top:2px}\n.wk-id-lbl{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}\n.wk-id-dates{font-size:12px;color:var(--text2);line-height:1.5}\n.proj-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}\n.pchip{font-size:10px;font-weight:600;font-family:var(--mono);padding:1px 6px;border-radius:3px}\n.pchip-rd{background:var(--RDdim);color:var(--RD);border:1px solid var(--RDbd)}\n.pchip-pd{background:var(--PDdim);color:var(--PD);border:1px solid var(--PDbd)}\n\n/* \u2500\u2500 STATS \u2500\u2500 */\n.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}\n.scard{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px 12px}\n.scard-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:2px}\n.scard-val{font-size:17px;font-weight:500;font-family:var(--mono)}\n.scard-sub{font-size:10px;color:var(--text3)}\n\n/* \u2500\u2500 CHART \u2500\u2500 */\n.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px 8px;margin-bottom:12px}\n.chart-c{position:relative;height:180px}\n.chart-leg{display:flex;gap:10px;margin-top:7px;border-top:1px solid var(--border);padding-top:6px;flex-wrap:wrap}\n.leg{display:flex;align-items:center;gap:3px;font-size:10px;color:var(--text3)}\n.leg-dot{width:6px;height:6px;border-radius:1px;flex-shrink:0}\n\n/* \u2500\u2500 WEEK SECTION \u2500\u2500 */\n.wk-section-hdr{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);\n  padding:6px 0;border-bottom:1px solid var(--border);margin-bottom:8px}\n\n/* \u2500\u2500 WEEK CARD \u2500\u2500 */\n.wk{background:var(--bg2);border:1px solid var(--border);border-radius:7px;margin-bottom:6px;overflow:hidden}\n.chv{font-size:9px;color:var(--text3);width:10px;flex-shrink:0}\n.wk-body.closed{display:none}\n.wk.now{border-color:var(--tbd);box-shadow:0 0 0 1px var(--tbd)}\n.wk-hdr{padding:7px 12px;display:flex;align-items:center;gap:8px;background:var(--bg3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}\n.wk.now .wk-hdr{background:var(--tdim);border-left:3px solid var(--teal)}\n.wk-num{font-size:10px;font-weight:700;font-family:var(--mono);\n  padding:2px 6px;border-radius:3px;background:var(--bg4);color:var(--text2)}\n.wk.now .wk-num{background:var(--tdim);color:var(--teal);border:1px solid var(--tbd)}\n.wk-range{font-size:11px;color:var(--text3)}\n.wk-sum{margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--text3)}\n.wk-proj-mini{display:flex;gap:4px;font-size:9px;font-family:var(--mono)}\n\n/* \u2500\u2500 TABLE \u2500\u2500 */\n.tbl-wrap{overflow-x:auto}\ntable.wt{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}\ntable.wt th,table.wt td{border-right:1px solid var(--border);border-bottom:1px solid var(--border)}\ntable.wt tr:last-child td{border-bottom:none}\ntable.wt th:last-child,table.wt td:last-child{border-right:none}\n.rlbl{width:54px;padding:4px 8px;font-size:9px;color:var(--text3);background:var(--bg3);\n  text-align:right;font-weight:500;white-space:nowrap}\n.dhd{padding:4px 2px;text-align:center;font-size:10px;font-weight:600;background:var(--bg3);color:var(--text2)}\n.dhd.wknd{color:var(--text3)}\n.dhd.today{color:var(--teal);background:var(--tdim)}\n.dtd{padding:2px 2px;text-align:center;background:var(--bg2)}\n.dtd.wknd{background:var(--bg3)}\n.dtd.today{background:var(--tdim)}\n.dtd.fl-hol{background:rgba(6,182,212,.08)}\n.dtd.fl-plan{background:rgba(167,139,250,.08)}\n\n/* time inputs */\n.ti{background:transparent;border:none;color:var(--text);font-family:var(--mono);\n  font-size:11px;width:100%;text-align:center;padding:3px 0;outline:none;caret-color:var(--amber)}\n.ti::placeholder{color:var(--border2)}\n.ti:focus{color:var(--amber);background:var(--adim);border-radius:2px}\n.dtd.today .ti{color:var(--text)}\n.dtd.today .ti:focus{color:var(--amber)}\n.ti.hol{color:var(--teal)}\n.ti.plan{color:var(--purple)}\n\n/* hours display */\n.hrs{font-family:var(--mono);font-size:11px;display:inline-block;min-width:32px}\n.hrs.pos{color:var(--green)}.hrs.neg{color:var(--red)}\n.hrs.hol{color:var(--teal)}.hrs.plan{color:var(--purple)}.hrs.mt{color:var(--text3)}\n\n/* flag buttons */\n.fl{background:transparent;border:1px solid var(--border2);color:var(--text3);\n  font-size:9px;font-weight:700;width:17px;height:15px;border-radius:2px;cursor:pointer;\n  line-height:1;font-family:var(--font);padding:0}\n.fl:hover{border-color:var(--text2);color:var(--text)}\n.fl.hol{background:var(--tdim);border-color:var(--tbd);color:var(--teal)}\n.fl.plan{background:var(--pdim);border-color:var(--pbd);color:var(--purple)}\n\n/* project pair */\n.proj-td{padding:1px 2px!important}\n.proj-pair{display:flex;flex-direction:column;gap:1px}\n.proj-row{display:flex;align-items:center;gap:2px;padding:1px 2px}\n.proj-row.rd{border-left:2px solid var(--RDbd)}\n.proj-row.pd{border-left:2px solid var(--PDbd)}\n.ptag{font-size:8px;font-weight:700;font-family:var(--mono);width:18px;flex-shrink:0}\n.proj-row.rd .ptag{color:var(--RD)}\n.proj-row.pd .ptag{color:var(--PD)}\n.pi{background:transparent;border:none;color:var(--text2);font-family:var(--mono);\n  font-size:10px;width:30px;text-align:center;padding:0;outline:none}\n.pi:focus{color:var(--text);background:var(--bg4);border-radius:2px}\n.pi.rd:focus{color:var(--RD)}\n.pi.pd:focus{color:var(--PD)}\n\n/* week footer */\n.wk-foot{background:var(--bg3);border-top:1px solid var(--border);\n  padding:5px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px}\n.ci{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);\n  padding:1px 5px;border-radius:3px;font-size:11px;font-family:var(--mono);width:46px;text-align:center}\n.ci:focus{outline:none;border-color:var(--abd);color:var(--text)}\n.tots{margin-left:auto;display:flex;gap:7px;font-family:var(--mono);font-size:10px;flex-wrap:wrap}\n.ti2{display:flex;gap:2px}.tl{color:var(--text3)}\n.ca{color:var(--amber)}.cg{color:var(--green)}.cr{color:var(--red)}\n.ct{color:var(--teal)}.cp{color:var(--purple)}.cb{color:var(--blue)}\n.crd{color:var(--RD)}.cpd{color:var(--PD)}.cm{color:var(--text3)}\n<\/style>\n<\/head>\n<body>\n<div id=\"hdr\">\n  <div class=\"logo\"><span>E3<\/span> SDL Timesheets<\/div>\n  <button class=\"btn btn-now\" onclick=\"jumpToday()\">Go to today<\/button>\n  <div class=\"yr-btns\" id=\"yr-btns\"><\/div>\n  <div class=\"hdr-right\">\n    <button class=\"btn\" onclick=\"toggleTheme()\" id=\"btn-theme\">&#9790;<\/button>\n    <button class=\"btn\" onclick=\"addYear()\">+ Year<\/button>\n    <button class=\"btn\" onclick=\"exportCSV()\">Export CSV<\/button>\n    <button class=\"btn\" id=\"btn-save\" onclick=\"saveFile()\" style=\"border-color:rgba(34,197,94,.4);color:#22c55e\">&#8659; Save file<\/button>\n  <\/div>\n<\/div>\n\n<div id=\"main\">\n  <div class=\"hero-grid\" id=\"hero\"><\/div>\n  <div class=\"stats-grid\" id=\"stats\"><\/div>\n  <div class=\"chart-box\"><div class=\"chart-c\"><canvas id=\"chart\"><\/canvas><\/div>\n    <div class=\"chart-leg\">\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--amber)\"><\/div>Over contract<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--green)\"><\/div>Under contract<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--RD)\"><\/div>R&amp;D<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--PD)\"><\/div>PD<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--teal)\"><\/div>Holiday<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--purple)\"><\/div>Planning<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"border:1px dashed rgba(150,160,180,.6);background:transparent\"><\/div>Contracted<\/div>\n    <\/div>\n  <\/div>\n  <div class=\"wk-section-hdr\" id=\"sec-hdr\"><\/div>\n  <div id=\"weeks\"><\/div>\n<\/div>\n\n";
+const _H2="\n<\/body>\n<\/html>";
+
+function buildHtml(){
+  let src=null;
+  for(const s of document.scripts){
+    if(s.textContent.includes('const SEED=')){src=s.textContent;break;}
+  }
+  if(!src)return null;
+  const stateData={};
+  Object.entries(S.years).forEach(([yr,yd])=>{
+    stateData[yr]={};
+    Object.entries(yd.weeks).forEach(([wn,w])=>{stateData[yr][wn]=w;});
+  });
+  const newSeed=JSON.stringify(stateData);
+  const marker='const SEED=';
+  const si=src.indexOf(marker);
+  const ei=src.indexOf(';\n',si);
+  if(si===-1||ei===-1)return null;
+  const newScript=src.slice(0,si)+marker+newSeed+src.slice(ei);
+  return _H1+'<script>\n'+newScript+'\n<\/script>'+_H2;
+}
+
+async function saveFile(){
+  const html=buildHtml();
+  if(!html){alert('Could not build file content');return;}
+  const btn=document.getElementById('btn-save');
+
+  // ── Option 1: File System Access API (Chrome/Edge, works from disk or SharePoint)
+  if(window.showSaveFilePicker){
+    try{
+      // Reuse existing handle if we have one, else prompt once
+      if(!_fileHandle){
+        _fileHandle=await window.showSaveFilePicker({
+          suggestedName:'SDL_Timesheets.html',
+          types:[{description:'HTML file',accept:{'text/html':['.html']}}]
+        });
+      }
+      const writable=await _fileHandle.createWritable();
+      await writable.write(html);
+      await writable.close();
+      if(btn){btn.textContent='Saved ✓';setTimeout(()=>{btn.textContent='Save file';},1500);}
+      return;
+    }catch(e){
+      if(e.name==='AbortError')return; // user cancelled picker — don't fall through
+      // Any other error (e.g. handle became stale): clear handle and fall through to download
+      _fileHandle=null;
+    }
+  }
+
+  // ── Option 2: Plain download fallback (Firefox, Safari, opened via http without FSAA)
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SDL_Timesheets.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  if(btn){btn.textContent='Saved ✓';setTimeout(()=>{btn.textContent='Save file';},1500);}
+}
+function exportCSV(){
+  const yr=+S.activeYear,yd=S.years[yr];
+  const rows=['Week,Date,Day,Start,Break,End,Hours,Flag,RD,PD,Contract'];
+  const D2=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  Object.keys(yd.weeks).sort((a,b)=>+a-+b).forEach(wn=>{
+    yd.weeks[wn].days.forEach((d,di)=>{
+      const m=calcDay(d.start,d.brk,d.end);
+      rows.push([wn,d.date,D2[di],d.start||'',d.brk||'',d.end||'',m!=null?fm(m):'',
+        d.flag||'',d.rd||'',d.pd||'',(yd.weeks[wn].contractMins/60).toFixed(1)].join(','));
+    });
+  });
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.join('\n'));
+  a.download=`timesheets_${yr}.csv`;a.click();
+}
+function toggleTheme(){
+  const l=document.body.classList.toggle('light');
+  document.getElementById('btn-theme').textContent=l?'\u2600':'\u263e';
+  try{localStorage.setItem('e3_theme',l?'light':'dark');}catch(e){}
+}
+function initTheme(){
+  try{if(localStorage.getItem('e3_theme')==='light'){document.body.classList.add('light');document.getElementById('btn-theme').textContent='\u2600';}}catch(e){}
+}
+
+function renderAll(){
+  renderYearBtns();
+  const yr=+S.activeYear;
+  document.getElementById('sec-hdr').textContent=yr+' — all weeks';
+  renderHero();renderStats();renderChart();
+  const wc=document.getElementById('weeks');
+  wc.innerHTML=Object.keys(S.years[yr].weeks).sort((a,b)=>+a-+b).map(wn=>renderWeek(yr,+wn)).join('');
+  Object.keys(S.years[yr].weeks).forEach(wn=>{
+    attachListeners(yr,+wn);
+    if(yr<TOD_Y||(yr===TOD_Y&&+wn<TOD_W))closeWk(yr,+wn);
+  });
+}
+
+initTheme();
+renderAll();
+// ── PIN ──────────────────────────────────────────────────────────────────────
+const PIN_KEY='e3pin_v1';
+const DEFAULT_PIN='1234';
+let _pinBuf='';
+let _pinChangeMode=false;
+let _pinNewFirst='';
+
+function pinHash(p){
+  // Simple non-crypto hash — good enough for a privacy screen, not security
+  let h=0;for(let i=0;i<p.length;i++){h=(Math.imul(31,h)+p.charCodeAt(i))|0;}
+  return String(h>>>0);
+}
+
+function pinStored(){
+  try{return localStorage.getItem(PIN_KEY)||pinHash(DEFAULT_PIN);}catch(e){return pinHash(DEFAULT_PIN);}
+}
+
+function pinSave(p){
+  try{localStorage.setItem(PIN_KEY,pinHash(p));}catch(e){}
+}
+
+function pinUpdateDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    if(d)d.classList.toggle('filled',i<_pinBuf.length);
+  }
+}
+
+function pinSetErr(msg){
+  const el=document.getElementById('pin-err');
+  if(el)el.textContent=msg;
+}
+
+function pinSetSub(msg){
+  const el=document.querySelector('.pin-sub');
+  if(el)el.textContent=msg;
+}
+
+function pinUnlock(){
+  document.getElementById('pin-screen').classList.add('hidden');
+  _pinBuf='';
+}
+
+function pinKey(k){
+  const errEl=document.getElementById('pin-err');
+  if(errEl)errEl.textContent='';
+
+  if(k===null){
+    // ✕ = cancel change mode
+    _pinChangeMode=false;_pinNewFirst='';_pinBuf='';
+    pinUpdateDots();
+    pinSetSub('SDL Timesheets');
+    document.getElementById('pin-change-btn').textContent='change pin';
+    return;
+  }
+  if(k===''){
+    // backspace
+    _pinBuf=_pinBuf.slice(0,-1);
+    pinUpdateDots();
+    return;
+  }
+  if(_pinBuf.length>=4)return;
+  _pinBuf+=k;
+  pinUpdateDots();
+
+  if(_pinBuf.length<4)return;
+
+  if(_pinChangeMode){
+    if(!_pinNewFirst){
+      // First entry of new PIN
+      _pinNewFirst=_pinBuf;
+      _pinBuf='';
+      pinUpdateDots();
+      pinSetSub('confirm new pin');
+    } else {
+      // Confirm
+      if(_pinBuf===_pinNewFirst){
+        pinSave(_pinBuf);
+        _pinChangeMode=false;_pinNewFirst='';
+        pinSetSub('SDL Timesheets');
+        document.getElementById('pin-change-btn').textContent='change pin';
+        pinSetErr('pin updated');
+        setTimeout(()=>{pinSetErr('');pinUnlock();},800);
+      } else {
+        pinSetErr('pins did not match');
+        _pinBuf='';_pinNewFirst='';
+        pinUpdateDots();
+        pinSetSub('enter new pin');
+      }
+    }
+    return;
+  }
+
+  // Normal unlock
+  if(pinHash(_pinBuf)===pinStored()){
+    pinUnlock();
+  } else {
+    pinSetErr('incorrect pin');
+    _pinBuf='';
+    pinUpdateDots();
+  }
+}
+
+function pinChangeMode(){
+  _pinChangeMode=true;_pinNewFirst='';_pinBuf='';
+  pinUpdateDots();
+  pinSetSub('enter new pin');
+  document.getElementById('pin-change-btn').textContent='cancel';
+}
+
+// Keyboard support
+document.addEventListener('keydown',e=>{
+  const ps=document.getElementById('pin-screen');
+  if(ps&&!ps.classList.contains('hidden')){
+    if(e.key>='0'&&e.key<='9')pinKey(e.key);
+    else if(e.key==='Backspace')pinKey('');
+    else if(e.key==='Escape')pinKey(null);
+  }
+});
+
+</script>
+</body>
+</html>
