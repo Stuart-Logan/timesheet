@@ -919,7 +919,7 @@ function renderAll(){
 }
 
 initTheme();
-renderAll();
+// renderAll() is called by pinUnlock() after PIN entry
 // ── PIN ──────────────────────────────────────────────────────────────────────
 const PIN_KEY='e3pin_v1';
 const DEFAULT_PIN='1234';
@@ -958,16 +958,19 @@ function pinSetSub(msg){
   if(el)el.textContent=msg;
 }
 
+let _appReady=false;
 function pinUnlock(){
   const ps=document.getElementById('pin-screen');
   const app=document.getElementById('app');
+  // Show app first (hidden but in layout) so Chart.js can measure canvas
+  if(app){app.style.display='';}
+  if(!_appReady){_appReady=true;renderAll();}
   ps.style.opacity='0';
   ps.style.transition='opacity .25s';
   setTimeout(()=>{
     ps.classList.add('hidden');
     ps.style.opacity='';
     ps.style.transition='';
-    if(app){app.style.display='';}
   },240);
   _pinBuf='';
 }
