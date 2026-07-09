@@ -230,38 +230,11 @@ table.wt th:last-child,table.wt td:last-child{border-right:none}
   <div class="pin-err" id="pin-err"></div>
   <div class="pin-change" onclick="pinChangeMode()" id="pin-change-btn">change pin</div>
 </div>
-<div id="app" style="display:none">
-<div id="hdr">
-  <div class="logo"><span>E3</span> SDL Timesheets</div>
-  <button class="btn btn-now" onclick="jumpToday()">Go to today</button>
-  <div class="yr-btns" id="yr-btns"></div>
-  <div class="hdr-right">
-    <button class="btn" onclick="toggleTheme()" id="btn-theme">&#9790;</button>
-    <button class="btn" onclick="addYear()">+ Year</button>
-    <button class="btn" onclick="exportCSV()">Export CSV</button>
-    <button class="btn" id="btn-save" onclick="saveFile()" style="border-color:rgba(34,197,94,.4);color:#22c55e">&#8659; Save file</button>
-  </div>
-</div>
-
-<div id="main">
-  <div class="hero-grid" id="hero"></div>
-  <div class="stats-grid" id="stats"></div>
-  <div class="chart-box"><div class="chart-c"><canvas id="chart"></canvas></div>
-    <div class="chart-leg">
-      <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>Over contract</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Under contract</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--RD)"></div>R&amp;D</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--PD)"></div>PD</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--teal)"></div>Holiday</div>
-      <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div>Planning</div>
-      <div class="leg"><div class="leg-dot" style="border:1px dashed rgba(150,160,180,.6);background:transparent"></div>Contracted</div>
-    </div>
-  </div>
-  <div class="wk-section-hdr" id="sec-hdr"></div>
-  <div id="weeks"></div>
-</div>
+<div id="app-mount"></div>
 
 <script>
+const APP_HTML="<div id=\"hdr\">\n  <div class=\"logo\"><span>E3<\/span> SDL Timesheets<\/div>\n  <button class=\"btn btn-now\" onclick=\"jumpToday()\">Go to today<\/button>\n  <div class=\"yr-btns\" id=\"yr-btns\"><\/div>\n  <div class=\"hdr-right\">\n    <button class=\"btn\" onclick=\"toggleTheme()\" id=\"btn-theme\">&#9790;<\/button>\n    <button class=\"btn\" onclick=\"addYear()\">+ Year<\/button>\n    <button class=\"btn\" onclick=\"exportCSV()\">Export CSV<\/button>\n    <button class=\"btn\" id=\"btn-save\" onclick=\"saveFile()\" style=\"border-color:rgba(34,197,94,.4);color:#22c55e\">&#8659; Save file<\/button>\n  <\/div>\n<\/div>\n\n<div id=\"main\">\n  <div class=\"hero-grid\" id=\"hero\"><\/div>\n  <div class=\"stats-grid\" id=\"stats\"><\/div>\n  <div class=\"chart-box\"><div class=\"chart-c\"><canvas id=\"chart\"><\/canvas><\/div>\n    <div class=\"chart-leg\">\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--amber)\"><\/div>Over contract<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--green)\"><\/div>Under contract<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--RD)\"><\/div>R&amp;D<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--PD)\"><\/div>PD<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--teal)\"><\/div>Holiday<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"background:var(--purple)\"><\/div>Planning<\/div>\n      <div class=\"leg\"><div class=\"leg-dot\" style=\"border:1px dashed rgba(150,160,180,.6);background:transparent\"><\/div>Contracted<\/div>\n    <\/div>\n  <\/div>\n  <div class=\"wk-section-hdr\" id=\"sec-hdr\"><\/div>\n  <div id=\"weeks\"><\/div>\n<\/div>\n\n";
+
 const SK='e3ts_v13';
 const sv=s=>{try{localStorage.setItem(SK,JSON.stringify(s))}catch(e){}};
 const ld=()=>{try{const r=localStorage.getItem(SK);if(r)return JSON.parse(r)}catch(e){}return null};
@@ -962,10 +935,13 @@ function pinSetSub(msg){
 let _appReady=false;
 function pinUnlock(){
   const ps=document.getElementById('pin-screen');
-  const app=document.getElementById('app');
-  // Show app first (hidden but in layout) so Chart.js can measure canvas
-  if(app){app.style.display='';}
-  if(!_appReady){_appReady=true;renderAll();}
+  if(!_appReady){
+    _appReady=true;
+    // Inject app HTML into mount point, then render
+    const mount=document.getElementById('app-mount');
+    if(mount)mount.innerHTML=APP_HTML;
+    renderAll();
+  }
   ps.style.opacity='0';
   ps.style.transition='opacity .25s';
   setTimeout(()=>{
@@ -1054,6 +1030,5 @@ document.addEventListener('keydown',e=>{
 });
 
 </script>
-</div><!-- #app -->
 </body>
 </html>
